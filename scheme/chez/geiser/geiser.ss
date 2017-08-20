@@ -55,7 +55,9 @@
 					  (with-output-to-string
 					    (lambda () (display-condition result-mid))))))
 		      '())))
-      (write `((result ,(write-to-string result))
+      (write `((result ,(with-output-to-string
+			  (lambda ()
+			    (pretty-print result))))
                (output . "")
 	       ,error))
       (newline)))
