@@ -30,35 +30,40 @@
 
   (define (geiser:eval module form . rest)
     rest
-    (let* ((try-eval (lambda (x . y)
-		       (call/cc
-			(lambda (k)
-			  (with-exception-handler
-			      (lambda (e)
-				(k e))
-			    (lambda () 
-				    (if (null? y) (eval x)
-					(eval x (car y)))
-				    ))))))
+    (let* ((body (lambda ()
+		   (if module
+		       (eval form (environment module))
+		       (eval form))))
 	   (result-mid (call-with-values
-			   (lambda () (if module
-					  (try-eval form (environment module))
-					  (try-eval form)))
-			 (lambda (x . y)
-			   (if (null? y)
-			       x
-			       (cons x y)))))
-	   (result result-mid)
-	   (error (if (condition? result-mid)
+			   (lambda ()
+			     (call/cc
+			      (lambda (k)
+				(with-exception-handler
+				    (lambda (e)
+				      (k 'error e))
+				  (lambda ()
+				    (call-with-values
+					(lambda ()
+					  (body))
+				      (lambda (x . y)
+					(if (null? y)
+					    (k 'single x)
+					    (k 'multi (cons x y))))))))))
+			 (lambda (t v)
+			   (cons t v))))
+	   (result (if (eq? (car result-mid) 'error)
+		       ""
+		       (with-output-to-string
+			 (lambda ()
+			   (pretty-print (cdr result-mid))))))
+	   (error (if (eq? (car result-mid) 'error)
 		      (cons 'error (list
 				    (cons 'key
 					  (with-output-to-string
-					    (lambda () (display-condition result-mid))))))
+					    (lambda () (display-condition (cdr result-mid)))))))
 		      '())))
-      (write `((result ,(with-output-to-string
-			  (lambda ()
-			    (pretty-print result))))
-               (output . "")
+      (write `((result ,result)
+	       (output . "")
 	       ,error))
       (newline)))
 
