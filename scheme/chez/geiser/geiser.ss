@@ -34,37 +34,33 @@
 		   (if module
 		       (eval form (environment module))
 		       (eval form))))
-	   (result-mid (call-with-values
-			   (lambda ()
-			     (call/cc
-			      (lambda (k)
-				(with-exception-handler
-				    (lambda (e)
-				      (k 'error e))
-				  (lambda ()
-				    (call-with-values
-					(lambda ()
-					  (body))
-				      (lambda (x . y)
-					(if (null? y)
-					    (k 'single x)
-					    (k 'multi (cons x y))))))))))
-			 (lambda (t v)
-			   (cons t v))))
-	   (result (if (eq? (car result-mid) 'error)
-		       ""
-		       (with-output-to-string
-			 (lambda ()
-			   (pretty-print (cdr result-mid))))))
-	   (error (if (eq? (car result-mid) 'error)
-		      (cons 'error (list
-				    (cons 'key
-					  (with-output-to-string
-					    (lambda () (display-condition (cdr result-mid)))))))
-		      '())))
-      (write `((result ,result)
-	       (output . "")
-	       ,error))
+	   (gen-result (lambda (result-mid is-error?)
+			 (if is-error?
+			     `((result "")
+			       (output . "")
+			       (error . ,(list
+					(cons 'key
+					      (with-output-to-string
+						(lambda ()
+						  (display-condition result-mid)))))))
+			     `((result ,(with-output-to-string
+					  (lambda ()
+					    (pretty-print result-mid))))
+			       (output . "")))))
+	   (result (call/cc
+		    (lambda (k)
+		      (with-exception-handler
+			  (lambda (e)
+			    (k (gen-result e #t)))
+			(lambda ()
+			  (call-with-values
+			      (lambda ()
+				(body))
+			    (lambda (x . y)
+			      (if (null? y)
+				  (k (gen-result x #f))
+				  (k (gen-result (cons x y) #f)))))))))))
+      (write result)
       (newline)))
 
   (define (geiser:module-completions prefix . rest)
