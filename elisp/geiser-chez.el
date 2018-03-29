@@ -104,7 +104,7 @@ This function uses `geiser-chez-init-file' if it exists."
     (geiser-eval--send/wait "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
 
 (defun geiser-chez--display-error (module key msg)
-  (and key (message key) nil))
+  (and key (message msg) nil))
 
 ;;; Implementation definition:
 
