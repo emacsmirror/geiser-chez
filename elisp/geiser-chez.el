@@ -32,6 +32,11 @@
   :type '(choice string (repeat string))
   :group 'geiser-chez)
 
+(geiser-custom--defcustom geiser-chez-init-file "~/.chez-geiser"
+  "Initialization file with user code for the Chez REPL."
+  :type 'string
+  :group 'geiser-chez)
+
 
 ;;; REPL support:
 
@@ -43,7 +48,10 @@
 (defun geiser-chez--parameters ()
   "Return a list with all parameters needed to start Chez Scheme.
 This function uses `geiser-chez-init-file' if it exists."
-  `(,(expand-file-name "chez/geiser/geiser.ss" geiser-scheme-dir))
+  (let ((init-file) (and (stringp geiser-chez-init-file)
+                         (expand-file-name geiser-chez-init-file)))
+    `(,@(and init-file (file-readable-p init-file) (list init-file))
+      ,(expand-file-name "chez/geiser/geiser.ss" geiser-scheme-dir)))
   )
 
 (defconst geiser-chez--prompt-regexp "> ")
