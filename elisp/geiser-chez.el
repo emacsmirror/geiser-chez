@@ -48,11 +48,10 @@
 (defun geiser-chez--parameters ()
   "Return a list with all parameters needed to start Chez Scheme.
 This function uses `geiser-chez-init-file' if it exists."
-  (let ((init-file) (and (stringp geiser-chez-init-file)
-                         (expand-file-name geiser-chez-init-file)))
+  (let ((init-file (and (stringp geiser-chez-init-file)
+                        (expand-file-name geiser-chez-init-file))))
     `(,@(and init-file (file-readable-p init-file) (list init-file))
-      ,(expand-file-name "chez/geiser/geiser.ss" geiser-scheme-dir)))
-  )
+      ,(expand-file-name "chez/geiser/geiser.ss" geiser-scheme-dir))))
 
 (defconst geiser-chez--prompt-regexp "> ")
 
