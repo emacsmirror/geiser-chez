@@ -58,7 +58,7 @@
 ;; (make-violation)
 ;;=> #<condition &violation>
 (do-test
- '(make-violation) 
+ '(make-violation)
  "((result \"#<condition &violation>\\n\") (output . \"\"))\n")
 
 ;; (values 1 2 3)
@@ -118,4 +118,3 @@
      rest)]
   [(x1) (+ x1)]
   [() (+)])) "((result \"(case-lambda\\n  [(x1 x2) (+ x1 x2)]\\n  [(x1 x2 x3) (+ (+ x1 x2) x3)]\\n  [(x1 x2 . rest)\\n   ((letrec ([loop (lambda (x1 x2 rest)\\n                     (let ([x (+ x1 x2)])\\n                       (if (null? rest)\\n                           x\\n                           (loop x (car rest) (cdr rest)))))])\\n      loop)\\n     x1\\n     x2\\n     rest)]\\n  [(x1) (+ x1)]\\n  [() (+)])\\n\") (output . \"\"))\n")
-
