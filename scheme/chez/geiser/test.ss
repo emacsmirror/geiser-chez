@@ -1,5 +1,5 @@
 (import (geiser)
-	(chezscheme))
+        (chezscheme))
 
 (define-syntax assert-equal
   (syntax-rules ()
@@ -77,10 +77,10 @@
 ;;    [(x1 x2 x3) (+ (+ x1 x2) x3)]
 ;;    [(x1 x2 . rest)
 ;;     ((letrec ([loop (lambda (x1 x2 rest)
-;; 		      (let ([x (+ x1 x2)])
-;; 			(if (null? rest)
-;; 			    x
-;; 			    (loop x (car rest) (cdr rest)))))])
+;;                    (let ([x (+ x1 x2)])
+;;                      (if (null? rest)
+;;                          x
+;;                          (loop x (car rest) (cdr rest)))))])
 ;;        loop)
 ;;      x1
 ;;      x2

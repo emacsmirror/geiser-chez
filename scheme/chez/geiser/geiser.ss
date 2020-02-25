@@ -4,21 +4,21 @@
           geiser:module-completions
           geiser:autodoc
           geiser:no-values
-	  geiser:load-file
+          geiser:load-file
           geiser:newline
           geiser:macroexpand)
   (import (chezscheme))
 
   (define (last-index-of str-list char idx last-idx)
     (if (null? str-list)
-	last-idx
-	(last-index-of (cdr str-list) char (+ 1 idx) (if (char=? char (car str-list)) idx last-idx))))
+        last-idx
+        (last-index-of (cdr str-list) char (+ 1 idx) (if (char=? char (car str-list)) idx last-idx))))
 
   (define (obj-file-name name)
     (let ((idx (last-index-of (string->list name) #\. 0 -1)))
       (if (= idx -1)
-	  (string-append name ".so")
-	  (string-append (substring name 0 idx) ".so"))))
+          (string-append name ".so")
+          (string-append (substring name 0 idx) ".so"))))
 
   (define (geiser:load-file filename)
     (let ((output-filename (obj-file-name filename)))

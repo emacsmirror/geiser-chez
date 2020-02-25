@@ -68,7 +68,7 @@ This function uses `geiser-chez-init-file' if it exists."
            (module (cond ((string-equal "'()" (car args))
                           "'()")
                          ((and (car args))
-                             (concat "'" (car args)))
+                          (concat "'" (car args)))
                          (t
                           "#f"))))
        (format "(geiser:eval %s '%s)" module form)))
