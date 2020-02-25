@@ -1,4 +1,4 @@
-;; geiser-chez.el -- Chez Scheme's implementation of the geiser protocols
+;;; geiser-chez.el -- Chez Scheme's implementation of the geiser protocols
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the Modified BSD License. You should
