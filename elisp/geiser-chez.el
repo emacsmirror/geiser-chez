@@ -40,7 +40,7 @@
   :type 'string
   :group 'geiser-chez)
 
-(geiser-custom--defcustom geiser-chez-extra-command-line-parameters '("")
+(geiser-custom--defcustom geiser-chez-extra-command-line-parameters '()
   "Additional parameters to supply to the Chez binary."
   :type '(repeat string)
   :group 'geiser-chez)
