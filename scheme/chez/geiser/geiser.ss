@@ -149,4 +149,7 @@
     #f)
 
   (define (geiser:macroexpand form . rest)
-    (syntax->datum (expand form))))
+    (with-output-to-string
+      (lambda ()
+        (pretty-print
+         (syntax->datum (expand form)))))))
