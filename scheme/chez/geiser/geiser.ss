@@ -55,10 +55,10 @@
           (with-exception-handler
               (lambda (e)
                 (k `((result "")
-                     (output . ,(get-output-string output-string))
-                     (error (key . ,(with-output-to-string
-                                      (lambda ()
-                                        (display-condition e))))))))
+                     (output . ,(with-output-to-string
+                                  (lambda ()
+                                    (display-condition e))))
+                     (error (key . chez-error-message)))))
             (lambda ()
               (call-with-values
                   ;; evaluate form, allow for multiple return values,
