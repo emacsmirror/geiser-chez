@@ -1,5 +1,13 @@
 ;;; geiser-chez.el -- Chez Scheme's implementation of the geiser protocols
 
+;; Author: Peter <craven@gmx.net>
+;; Maintainer:
+;; Keywords: languages, chez, scheme, geiser
+;; Homepage: https://gitlab.com/emacs-geiser/chez
+;; Package-Requires: ((emacs "24.4") (geiser-core "1.0"))
+;; SPDX-License-Identifier: BSD-3-Clause
+;; Version: 0.1
+
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the Modified BSD License. You should
 ;; have received a copy of the license along with this program. If
@@ -53,13 +61,17 @@
       (car geiser-chez-binary)
     geiser-chez-binary))
 
+(defvar geiser-chez-scheme-dir
+  (expand-file-name "src" (file-name-nondirectory load-file-name))
+  "Directory where the Chez scheme geiser modules are installed.")
+
 (defun geiser-chez--parameters ()
   "Return a list with all parameters needed to start Chez Scheme.
 This function uses `geiser-chez-init-file' if it exists."
   (let ((init-file (and (stringp geiser-chez-init-file)
                         (expand-file-name geiser-chez-init-file))))
     `(,@(and init-file (file-readable-p init-file) (list init-file))
-      ,(expand-file-name "chez/geiser/geiser.ss" geiser-scheme-dir)
+      ,(expand-file-name "geiser/geiser.ss" geiser-chez-scheme-dir)
       ,@geiser-chez-extra-command-line-parameters)))
 
 (defconst geiser-chez--prompt-regexp "> ")
