@@ -62,7 +62,7 @@
     geiser-chez-binary))
 
 (defvar geiser-chez-scheme-dir
-  (expand-file-name "src" (file-name-nondirectory load-file-name))
+  (expand-file-name "src" (file-name-directory load-file-name))
   "Directory where the Chez scheme geiser modules are installed.")
 
 (defun geiser-chez--parameters ()
