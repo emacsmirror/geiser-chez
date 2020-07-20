@@ -1,0 +1,8 @@
+* Chez and Geiser talk to each other
+
+This package provides support for using [[https://cisco.github.io/ChezScheme/][Chez Scheme]] in Emacs with
+[[http://geiser.nongnu.org][Geiser]].
+
+Provided [[https://gitlab.com/emacs-geiser/core][geiser-core]] is installed in your system, if this package's
+directory is in your load path, just add ~(require 'geiser-chez)~ to
+your initialisation files and then ~M-x run-chez~ to start a REPL.
