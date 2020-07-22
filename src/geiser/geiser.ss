@@ -98,38 +98,43 @@
       (if s
           (let ((form (s 'value)))
             (if (and (list? form)
-                     (> (length form) 2)
-                     (eq? (car form) 'lambda))
-                (cadr form)
+                     (> (length form) 2))
+                (case (car form)
+                  [(lambda) (list (cadr form))]
+                  [(case-lambda) (map car (cdr form))]
+                  [else #f])
                 #f))
           #f)))
 
   (define (operator-arglist operator)
-    (let ((binding (eval operator)))
+    (define (make-autodoc-arglist arglist)
+      (let loop ([arglist arglist]
+                 [optionals? #f]
+                 [required '()]
+                 [optional '()])
+        (cond ((null? arglist)
+               `(("required" ,@(reverse required))
+                 ("optional" ,@(reverse optional))
+                 ("key")
+                 ;; ("module" ,module)
+                 ))
+              ((symbol? arglist)
+               (loop '()
+                     #t
+                     required
+                     (cons "..." (cons arglist optional))))
+              (else
+               (loop
+                (cdr arglist)
+                optionals?
+                (if optionals? required (cons (car arglist) required))
+                (if optionals? (cons (car arglist) optional) optional))))))
+    (let ([binding (eval operator)])
       (if binding
-          (let ((arglist (procedure-parameter-list binding)))
-            (let loop ((arglist arglist)
-                       (optionals? #f)
-                       (required '())
-                       (optional '()))
-              (cond ((null? arglist)
-                     `(,operator ("args" (("required" ,@(reverse required))
-                                          ("optional" ,@(reverse optional))
-                                          ("key")
-                                          ;; ("module" ,module)
-                                          ))))
-                    ((symbol? arglist)
-                     (loop '()
-                           #t
-                           required
-                           (cons "..." (cons arglist optional))))
-                    (else
-                     (loop
-                      (cdr arglist)
-                      optionals?
-                      (if optionals? required (cons (car arglist) required))
-                      (if optionals? (cons (car arglist) optional) optional))))))
+          (let ([arglists (procedure-parameter-list binding)])
+            `(,operator ("args" ,@(map make-autodoc-arglist arglists))))
           '())))
+
 
   (define (geiser:autodoc ids . rest)
     (cond ((null? ids) '())
