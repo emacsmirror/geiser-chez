@@ -53,6 +53,11 @@
   :type '(repeat string)
   :group 'geiser-chez)
 
+(geiser-custom--defcustom geiser-chez-extra-keywords '()
+  "Extra keywords highlighted in Chez Scheme buffers."
+  :type '(repeat string)
+  :group 'geiser-chez)
+
 
 ;;; REPL support:
 
@@ -131,6 +136,9 @@ This function uses `geiser-chez-init-file' if it exists."
     (compilation-setup t)
     (geiser-eval--send/wait "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
 
+
+;;; Error display:
+
 (defun geiser-chez--display-error (module key msg)
   (when (stringp msg)
     (save-excursion (insert msg))
@@ -139,6 +147,72 @@ This function uses `geiser-chez-init-file' if it exists."
            (not key))
        (not (zerop (length msg)))
        msg))
+
+
+;;; Keywords and syntax:
+
+(defconst geiser-chez--builtin-keywords
+  '("call-with-input-file"
+    "call-with-output-file"
+    "define-ftype"
+    "define-structure"
+    "exclusive-cond"
+    "extend-syntax"
+    "fluid-let"
+    "fluid-let-syntax"
+    "meta"
+    "meta-cond"
+    "record-case"
+    "trace-case-lambda"
+    "trace-define"
+    "trace-define-syntax"
+    "trace-do"
+    "trace-lambda"
+    "trace-let"
+    "with"
+    "with-implicit"
+    "with-input-from-file"
+    "with-input-from-string"
+    "with-interrupts-disabled"
+    "with-mutex"
+    "with-output-to-file"
+    "with-output-to-string"))
+
+(defun geiser-chez--keywords ()
+  (append
+   (geiser-syntax--simple-keywords geiser-chez-extra-keywords)
+   (geiser-syntax--simple-keywords geiser-chez--builtin-keywords)))
+
+(geiser-syntax--scheme-indent
+ (call-with-input-file 1)
+ (call-with-output-file 1)
+ (define-ftype 1)
+ (struct 0)
+ (union 0)
+ (bits 0)
+ (define-structure 1)
+ (exclusive-cond 0)
+ (extend-syntax 1)
+ (fluid-let 1)
+ (fluid-let-syntax 1)
+ (meta 0)
+ (meta-cond 0)
+ (record-case 1)
+ (trace-case-lambda 1)
+ (trace-define 1)
+ (trace-define-syntax 1)
+ (trace-do 2)
+ (trace-lambda 2)
+ (trace-let 2)
+ (with 1)
+ (with-implicit 1)
+ (with-input-from-file 1)
+ (with-input-from-string 1)
+ (with-interrupts-disabled 0)
+ (with-mutex 1)
+ (with-output-to-file 1)
+ (with-output-to-string 0))
+
 
 ;;; Implementation definition:
 
@@ -160,7 +234,7 @@ This function uses `geiser-chez-init-file' if it exists."
   (display-error geiser-chez--display-error)
   ;; (external-help geiser-chez--manual-look-up)
   ;; (check-buffer geiser-chez--guess)
-  ;; (keywords geiser-chez--keywords)
+  (keywords geiser-chez--keywords)
   ;; (case-sensitive geiser-chez-case-sensitive-p)
   )
 
