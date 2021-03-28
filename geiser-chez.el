@@ -149,8 +149,8 @@ This function uses `geiser-chez-init-file' if it exists."
 
 ;;; Error display:
 
-(defun geiser-chez--display-error (module key msg)
-  "Display an error found in MODULE with the given KEY and message MSG."
+(defun geiser-chez--display-error (_module key msg)
+  "Display an error found during evaluation with the given KEY and message MSG."
   (when (stringp msg)
     (save-excursion (insert msg))
     (geiser-edit--buttonize-files))
