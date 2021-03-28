@@ -128,7 +128,7 @@ This function uses `geiser-chez-init-file' if it exists."
   (format "(import %s)" module))
 
 (defun geiser-chez--exit-command ()
-  "Retrun string representing a REPL exit sexp."
+  "Return string representing a REPL exit sexp."
   "(exit 0)")
 
 ;; 
