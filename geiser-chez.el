@@ -1,20 +1,21 @@
-;;; geiser-chez.el -- Chez Scheme's implementation of the geiser protocols
+;;; geiser-chez.el --- Chez Scheme's implementation of the geiser protocols  -*- lexical-binding: t; -*-
 
 ;; Author: Peter <craven@gmx.net>
-;; Maintainer:
+;; Maintainer: Jose A Ortega Ruiz <jao@gnu.org>
 ;; Keywords: languages, chez, scheme, geiser
 ;; Homepage: https://gitlab.com/emacs-geiser/chez
-;; Package-Requires: ((emacs "24.4") (geiser-core "1.0"))
+;; Package-Requires: ((emacs "24.4") (geiser "0.12"))
 ;; SPDX-License-Identifier: BSD-3-Clause
-;; Version: 0.1
+;; Version: 0.13
 
-;; This program is free software; you can redistribute it and/or
-;; modify it under the terms of the Modified BSD License. You should
-;; have received a copy of the license along with this program. If
-;; not, see <http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5>.
+;;; Commentary:
+
+;; This package provides support for Chez scheme in geiser.
 
 
 ;;; Code:
+
+(require 'geiser)
 
 (require 'geiser-connection)
 (require 'geiser-syntax)
@@ -23,7 +24,6 @@
 (require 'geiser-eval)
 (require 'geiser-edit)
 (require 'geiser-log)
-(require 'geiser)
 
 (require 'compile)
 (require 'info-look)
@@ -62,6 +62,7 @@
 ;;; REPL support:
 
 (defun geiser-chez--binary ()
+  "Return path to Chez scheme binary."
   (if (listp geiser-chez-binary)
       (car geiser-chez-binary)
     geiser-chez-binary))
@@ -85,6 +86,7 @@ This function uses `geiser-chez-init-file' if it exists."
 ;;; Evaluation support:
 
 (defun geiser-chez--geiser-procedure (proc &rest args)
+  "Transform PROC in string for a scheme procedure using ARGS."
   (cl-case proc
     ((eval compile)
      (let ((form (mapconcat 'identity (cdr args) " "))
@@ -104,6 +106,7 @@ This function uses `geiser-chez-init-file' if it exists."
        (format "(geiser:%s %s)" proc form)))))
 
 (defun geiser-chez--get-module (&optional module)
+  "Find current module, or normalize MODULE."
   (cond ((null module)
          :f)
         ((listp module) module)
@@ -114,24 +117,31 @@ This function uses `geiser-chez-init-file' if it exists."
         (t :f)))
 
 (defun geiser-chez--symbol-begin (module)
+  "Return beginning of current symbol while in MODULE."
   (if module
       (max (save-excursion (beginning-of-line) (point))
            (save-excursion (skip-syntax-backward "^(>") (1- (point))))
     (save-excursion (skip-syntax-backward "^'-()>") (point))))
 
 (defun geiser-chez--import-command (module)
+  "Return string representing an sexp importing MODULE."
   (format "(import %s)" module))
 
-(defun geiser-chez--exit-command () "(exit 0)")
+(defun geiser-chez--exit-command ()
+  "Retrun string representing a REPL exit sexp."
+  "(exit 0)")
+
 ;; 
 ;; ;;; REPL startup
 
 (defconst geiser-chez-minimum-version "9.4")
 
 (defun geiser-chez--version (binary)
+  "Use BINARY to find Chez scheme version."
   (car (process-lines binary "--version")))
 
-(defun geiser-chez--startup (remote)
+(defun geiser-chez--startup (_remote)
+  "Startup function."
   (let ((geiser-log-verbose-p t))
     (compilation-setup t)
     (geiser-eval--send/wait "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
@@ -140,6 +150,7 @@ This function uses `geiser-chez-init-file' if it exists."
 ;;; Error display:
 
 (defun geiser-chez--display-error (module key msg)
+  "Display an error found in MODULE with the given KEY and message MSG."
   (when (stringp msg)
     (save-excursion (insert msg))
     (geiser-edit--buttonize-files))
@@ -179,6 +190,7 @@ This function uses `geiser-chez-init-file' if it exists."
     "with-output-to-string"))
 
 (defun geiser-chez--keywords ()
+  "Return list of Chez-specific keywords."
   (append
    (geiser-syntax--simple-keywords geiser-chez-extra-keywords)
    (geiser-syntax--simple-keywords geiser-chez--builtin-keywords)))
@@ -240,5 +252,14 @@ This function uses `geiser-chez-init-file' if it exists."
 
 (geiser-impl--add-to-alist 'regexp "\\.ss$" 'chez t)
 (geiser-impl--add-to-alist 'regexp "\\.def$" 'chez t)
+
+;;;###autoload
+(autoload 'run-chez "geiser-chez" "Start a Geiser Chez REPL." t)
+
+;;;###autoload
+(autoload 'switch-to-chez "geiser-chez"
+  "Start a Geiser Chez REPL, or switch to a running one." t)
+
 
 (provide 'geiser-chez)
+;;; geiser-chez.el ends here
