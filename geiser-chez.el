@@ -24,6 +24,7 @@
 (require 'geiser-eval)
 (require 'geiser-edit)
 (require 'geiser-log)
+(require 'geiser-impl)
 
 (require 'compile)
 (require 'info-look)
@@ -251,7 +252,12 @@ This function uses `geiser-chez-init-file' if it exists."
   )
 
 (geiser-impl--add-to-alist 'regexp "\\.ss$" 'chez t)
+
+;;;###autoload
 (geiser-impl--add-to-alist 'regexp "\\.def$" 'chez t)
+
+;;;###autoload
+(geiser-activate-implementation 'chez)
 
 ;;;###autoload
 (autoload 'run-chez "geiser-chez" "Start a Geiser Chez REPL." t)
