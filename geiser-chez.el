@@ -91,12 +91,9 @@ This function uses `geiser-chez-init-file' if it exists."
   (cl-case proc
     ((eval compile)
      (let ((form (mapconcat 'identity (cdr args) " "))
-           (module (cond ((string-equal "'()" (car args))
-                          "'()")
-                         ((and (car args))
-                          (concat "'" (car args)))
-                         (t
-                          "#f"))))
+           (module (cond ((string-equal "'()" (car args)) "'()")
+                         ((car args) (concat "'" (car args)))
+                         (t "#f"))))
        (format "(geiser:eval %s '%s)" module form)))
     ((load-file compile-file)
      (format "(geiser:load-file %s)" (car args)))
@@ -125,7 +122,7 @@ This function uses `geiser-chez-init-file' if it exists."
     (save-excursion (skip-syntax-backward "^'-()>") (point))))
 
 (defun geiser-chez--import-command (module)
-  "Return string representing an sexp importing MODULE."
+  "Return string representing a sexp importing MODULE."
   (format "(import %s)" module))
 
 (defun geiser-chez--exit-command ()
@@ -145,7 +142,8 @@ This function uses `geiser-chez-init-file' if it exists."
   "Startup function."
   (let ((geiser-log-verbose-p t))
     (compilation-setup t)
-    (geiser-eval--send/wait "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
+    (geiser-eval--send/wait
+     "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
 
 
 ;;; Error display:
