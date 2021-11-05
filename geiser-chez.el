@@ -25,6 +25,7 @@
 (require 'geiser-edit)
 (require 'geiser-log)
 (require 'geiser-impl)
+(require 'geiser-repl)
 
 (require 'compile)
 (require 'info-look)
@@ -59,6 +60,11 @@
   :type '(repeat string)
   :group 'geiser-chez)
 
+(geiser-custom--defcustom geiser-chez-debug-on-exception-p nil
+  "Whether to automatically enter the debugger when catching an exception"
+  :type 'boolean
+  :group 'geiser-chez)
+
 
 ;;; REPL support:
 
@@ -82,6 +88,8 @@ This function uses `geiser-chez-init-file' if it exists."
       ,@geiser-chez-extra-command-line-parameters)))
 
 (defconst geiser-chez--prompt-regexp "> ")
+
+(defconst geiser-chez--debugger-prompt-regexp "debug> $\\|break> $\\|.+: $")
 
 
 ;;; Evaluation support:
@@ -148,13 +156,23 @@ This function uses `geiser-chez-init-file' if it exists."
 
 ;;; Error display:
 
+(defun geiser-chez--enter-debugger ()
+  "Tell Geiser to interact with the debugger."
+  (when geiser-chez-debug-on-exception-p
+    (let ((bt-cmd "\n(debug)\n")
+          (repl-buffer (geiser-repl--repl/impl 'chez)))
+      (compilation-forget-errors)
+      (goto-char (point-max))
+      (geiser-repl--prepare-send)
+      (comint-send-string repl-buffer bt-cmd)
+      (ignore-errors (next-error)))))
+
 (defun geiser-chez--display-error (_module key msg)
   "Display an error found during evaluation with the given KEY and message MSG."
   (when (stringp msg)
     (save-excursion (insert msg))
     (geiser-edit--buttonize-files))
-  (and (or (eq key 'chez-error-message)
-           (not key))
+  (and (not key)
        (not (zerop (length msg)))
        msg))
 
@@ -234,8 +252,8 @@ This function uses `geiser-chez-init-file' if it exists."
   (minimum-version geiser-chez-minimum-version)
   (repl-startup geiser-chez--startup)
   (prompt-regexp geiser-chez--prompt-regexp)
-  (debugger-prompt-regexp nil) ;; geiser-chez--debugger-prompt-regexp
-  ;; (enter-debugger geiser-chez--enter-debugger)
+  (debugger-prompt-regexp geiser-chez--debugger-prompt-regexp)
+  (enter-debugger geiser-chez--enter-debugger)
   (marshall-procedure geiser-chez--geiser-procedure)
   (find-module geiser-chez--get-module)
   ;; (enter-command geiser-chez--enter-command)
