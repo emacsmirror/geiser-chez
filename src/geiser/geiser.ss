@@ -101,10 +101,21 @@
       (if s
           (let ((form (s 'value)))
             (if (and (list? form)
-                     (> (length form) 2))
+                     (>= (length form) 2))
                 (case (car form)
                   [(lambda) (list (cadr form))]
                   [(case-lambda) (map car (cdr form))]
+                  [(record-predicate record-accessor)
+                   (list (list (record-type-name (cadr (cadr form)))))]
+                  [(record-mutator)
+                   (let ([rtd (cadr (cadr form))]
+                         [field-idx (caddr form)])
+                     (list (list (record-type-name rtd)
+                                 (vector-ref (record-type-field-names rtd) field-idx))))]
+                  [(record-constructor)
+                   (let* ([rcd (cadr (cadr form))]
+                          [rtd (((inspect/object rcd) 'ref 'rtd) 'value)])
+                     (list (vector->list (record-type-field-names rtd))))]
                   [else #f])
                 #f))
           #f)))
