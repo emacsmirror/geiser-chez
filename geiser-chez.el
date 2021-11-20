@@ -4,7 +4,7 @@
 ;; Maintainer: Jose A Ortega Ruiz <jao@gnu.org>
 ;; Keywords: languages, chez, scheme, geiser
 ;; Homepage: https://gitlab.com/emacs-geiser/chez
-;; Package-Requires: ((emacs "26.1") (geiser "0.16"))
+;; Package-Requires: ((emacs "26.1") (geiser "0.18"))
 ;; SPDX-License-Identifier: BSD-3-Clause
 ;; Version: 0.16
 
@@ -165,7 +165,8 @@ This function uses `geiser-chez-init-file' if it exists."
       (goto-char (point-max))
       (geiser-repl--prepare-send)
       (comint-send-string repl-buffer bt-cmd)
-      (ignore-errors (next-error)))))
+      (ignore-errors (next-error)))
+    t))
 
 (defun geiser-chez--display-error (_module key msg)
   "Display an error found during evaluation with the given KEY and message MSG."
