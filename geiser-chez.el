@@ -4,9 +4,9 @@
 ;; Maintainer: Jose A Ortega Ruiz <jao@gnu.org>
 ;; Keywords: languages, chez, scheme, geiser
 ;; Homepage: https://gitlab.com/emacs-geiser/chez
-;; Package-Requires: ((emacs "26.1") (geiser "0.18"))
+;; Package-Requires: ((emacs "26.1") (geiser "0.19"))
 ;; SPDX-License-Identifier: BSD-3-Clause
-;; Version: 0.16
+;; Version: 0.17
 
 ;;; Commentary:
 
