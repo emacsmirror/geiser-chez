@@ -204,10 +204,8 @@ This function uses `geiser-chez-init-file' if it exists."
   "Display an error found during evaluation with the given KEY and message MSG."
   (when (stringp msg)
     (save-excursion (insert msg))
-    (geiser-edit--buttonize-files))
-  (and (not key)
-       (not (zerop (length msg)))
-       msg))
+    (geiser-edit--buttonize-files)
+    (not (zerop (length msg)))))
 
 
 ;;; Keywords and syntax:

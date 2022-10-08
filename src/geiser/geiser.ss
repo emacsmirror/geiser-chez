@@ -9,10 +9,36 @@
           geiser:macroexpand)
   (import (chezscheme))
 
+  (define (call-with-result thunk)
+    (let ((output-string (open-output-string)))
+      (write
+       (call/cc
+        (lambda (k)
+          (with-exception-handler
+              (lambda (e)
+                (debug-condition e)     ; save the condition for the debugger
+                (k `((result "")
+                     (output . ,(with-output-to-string
+                                  (lambda () (display-condition e))))
+                     (error (key . condition)))))
+            (lambda ()
+              (call-with-values
+                  (lambda ()
+                    (parameterize ((current-output-port output-string)) (thunk)))
+                (lambda result
+                  `((result ,(with-output-to-string
+                               (lambda ()
+                                 (pretty-print
+                                  (if (null? (cdr result)) (car result) result)))))
+                    (output . ,(get-output-string output-string))))))))))
+      (newline)
+      (close-output-port output-string)))
+
   (define (last-index-of str-list char idx last-idx)
     (if (null? str-list)
         last-idx
-        (last-index-of (cdr str-list) char (+ 1 idx) (if (char=? char (car str-list)) idx last-idx))))
+        (last-index-of (cdr str-list) char (+ 1 idx)
+                       (if (char=? char (car str-list)) idx last-idx))))
 
   (define (obj-file-name name)
     (let ((idx (last-index-of (string->list name) #\. 0 -1)))
@@ -22,8 +48,11 @@
 
   (define (geiser:load-file filename)
     (let ((output-filename (obj-file-name filename)))
-      (maybe-compile-file filename output-filename)
-      (load output-filename)))
+      (call-with-result
+       (lambda ()
+         (with-output-to-string
+           (lambda () (maybe-compile-file filename output-filename)))
+         (load output-filename)))))
 
   (define string-prefix?
     (lambda (x y)
@@ -35,50 +64,20 @@
                         (prefix? (fx+ i 1)))))))))
 
   (define (geiser:completions prefix . rest)
-    rest
     (sort string-ci<?
           (filter (lambda (el)
                     (string-prefix? prefix el))
-                  (map write-to-string (environment-symbols (interaction-environment))))))
+                  (map write-to-string
+                       (environment-symbols (interaction-environment))))))
 
   (define (write-to-string x)
     (with-output-to-string
       (lambda ()
         (write x))))
 
-  (define (geiser:eval module form . rest)
-    rest
-    (let ((output-string (open-output-string)))
-      (write
-       (call/cc
-        (lambda (k)
-          (with-exception-handler
-              (lambda (e)
-                (debug-condition e)     ; save the condition for the debugger
-                (k `((result "")
-                     (output . ,(format "~a~%~a"
-                                        (get-output-string output-string)
-                                        (with-output-to-string
-                                          (lambda ()
-                                            (display-condition e)))))
-                     (error (key . geiser-debugger)))))
-            (lambda ()
-              (call-with-values
-                  ;; evaluate form, allow for multiple return values,
-                  ;; and capture output in output-string.
-                  (lambda ()
-                    (parameterize ((current-output-port output-string))
-                      (if module
-                          (eval form (environment module))
-                          (eval form))))
-                (lambda result
-                  `((result ,(with-output-to-string
-                               (lambda ()
-                                 (pretty-print
-                                  (if (null? (cdr result)) (car result) result)))))
-                    (output . ,(get-output-string output-string))))))))))
-      (newline)
-      (close-output-port output-string)))
+  (define (geiser:eval module form)
+    (call-with-result
+     (lambda () (if module (eval form (environment module)) (eval form)))))
 
   (define (geiser:module-completions prefix . rest)
     (define (substring? s1 s2)
