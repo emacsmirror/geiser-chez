@@ -74,6 +74,14 @@
                   (map write-to-string
                        (environment-symbols (interaction-environment))))))
 
+  (define not-found (gensym))
+
+  (define (try-eval sym . env)
+    (call/cc
+     (lambda (k)
+       (with-exception-handler (lambda (e) (k not-found))
+         (lambda () (if (null? env) (eval sym) (eval sym (car env))))))))
+
   (define (geiser:eval module form)
     (call-with-result
      (lambda () (if module (eval form (environment module)) (eval form)))))
@@ -137,14 +145,6 @@
            (l (string-length s)))
       (if (<= l max-len) s (string-append (substring s 0 sub-len) sub-str))))
 
-  (define not-found (gensym))
-
-  (define (try-eval sym)
-    (call/cc
-     (lambda (k)
-       (with-exception-handler (lambda (e) (k not-found))
-         (lambda () (eval sym))))))
-
   (define (operator-arglist operator)
     (define (procedure-parameter-list p)
       (and (procedure? p)
@@ -159,9 +159,10 @@
     (let ([binding (try-eval operator)])
       (if (not (eq? binding not-found))
           (let ([arglists (procedure-parameter-list binding)])
-            (if arglists
-                `(,operator ("args" ,@(map autodoc-arglist arglists)))
-                `(,operator ("value" . ,(value->string binding)))))
+            (cond ((null? arglists) `(,operator ("args" (("required")))))
+                  (arglists
+                   `(,operator ("args" ,@(map autodoc-arglist arglists))))
+                  (else `(,operator ("value" . ,(value->string binding))))))
           '())))
 
   (define (geiser:autodoc ids)
