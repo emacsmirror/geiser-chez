@@ -63,10 +63,13 @@ init file at this location in remote host."
   :type '(repeat string)
   :group 'geiser-chez)
 
-(geiser-custom--defcustom geiser-chez-debug-on-exception-p nil
+(geiser-custom--defcustom geiser-chez-debug-on-exception nil
   "Whether to automatically enter the debugger when catching an exception"
   :type 'boolean
   :group 'geiser-chez)
+
+(define-obsolete-variable-alias 'geiser-chez-debug-on-exception-p
+  'geiser-chez-debug-on-exception "0.18")
 
 
 ;;; REPL support:
@@ -190,7 +193,8 @@ This function uses `geiser-chez-init-file' if it exists."
 
 (defun geiser-chez--enter-debugger ()
   "Tell Geiser to interact with the debugger."
-  (when geiser-chez-debug-on-exception-p
+  (when geiser-chez-debug-on-exception
+    (geiser-switch nil 'chez)
     (let ((bt-cmd "\n(debug)\n")
           (repl-buffer (geiser-repl--repl/impl 'chez)))
       (compilation-forget-errors)
