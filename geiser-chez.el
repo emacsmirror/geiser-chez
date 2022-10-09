@@ -12,7 +12,6 @@
 
 ;; This package provides support for Chez scheme in geiser.
 
-
 ;;; Code:
 
 (require 'geiser)
@@ -32,7 +31,6 @@
 
 (eval-when-compile (require 'cl-lib))
 
-
 ;;; Customization:
 
 (defgroup geiser-chez nil
@@ -72,7 +70,8 @@ host."
 (define-obsolete-variable-alias 'geiser-chez-debug-on-exception-p
   'geiser-chez-debug-on-exception "0.18")
 
-
+(defconst geiser-chez-minimum-version "9.4")
+
 ;;; REPL support:
 
 (defun geiser-chez--binary ()
@@ -109,9 +108,7 @@ host."
       (list local-file))))
 
 (defun geiser-chez--parameters ()
-  "Return a list with all parameters needed to start Chez Scheme.
-
-This function uses `geiser-chez-init-file' if it exists."
+  "Return a list with all parameters needed to start Chez Scheme."
   (append (geiser-chez--init-file)
           (geiser-chez--module-files)
           geiser-chez-extra-command-line-parameters))
@@ -119,7 +116,17 @@ This function uses `geiser-chez-init-file' if it exists."
 (defconst geiser-chez--prompt-regexp "> ")
 (defconst geiser-chez--debugger-prompt-regexp "debug> $\\|break> $\\|.+: $")
 
-
+(defun geiser-chez--version (binary)
+  "Use BINARY to find Chez scheme version."
+  (car (process-lines binary "--version")))
+
+(defun geiser-chez--startup (_remote)
+  "Startup function."
+  (let ((geiser-log-verbose-p t))
+    (compilation-setup t)
+    (geiser-eval--send/wait
+     "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
+
 ;;; Evaluation support:
 
 (defun geiser-chez--geiser-procedure (proc &rest args)
@@ -165,23 +172,7 @@ This function uses `geiser-chez-init-file' if it exists."
   "Return string representing a REPL exit sexp."
   "(exit 0)")
 
-;; 
-;; ;;; REPL startup
 
-(defconst geiser-chez-minimum-version "9.4")
-
-(defun geiser-chez--version (binary)
-  "Use BINARY to find Chez scheme version."
-  (car (process-lines binary "--version")))
-
-(defun geiser-chez--startup (_remote)
-  "Startup function."
-  (let ((geiser-log-verbose-p t))
-    (compilation-setup t)
-    (geiser-eval--send/wait
-     "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
-
-
 ;;; Error display:
 
 (defun geiser-chez--enter-debugger ()
@@ -204,7 +195,6 @@ This function uses `geiser-chez-init-file' if it exists."
     (geiser-edit--buttonize-files)
     (not (zerop (length msg)))))
 
-
 ;;; Keywords and syntax:
 
 (defconst geiser-chez--builtin-keywords
@@ -270,7 +260,6 @@ This function uses `geiser-chez-init-file' if it exists."
  (with-output-to-file 1)
  (with-output-to-string 0))
 
-
 ;;; Implementation definition:
 
 (define-geiser-implementation chez
@@ -310,6 +299,7 @@ This function uses `geiser-chez-init-file' if it exists."
 (autoload 'switch-to-chez "geiser-chez"
   "Start a Geiser Chez REPL, or switch to a running one." t)
 
-
+;;; -
 (provide 'geiser-chez)
+
 ;;; geiser-chez.el ends here
