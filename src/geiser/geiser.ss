@@ -71,9 +71,7 @@
                        (environment-symbols (interaction-environment))))))
 
   (define (write-to-string x)
-    (with-output-to-string
-      (lambda ()
-        (write x))))
+    (with-output-to-string (lambda () (write x))))
 
   (define (geiser:eval module form)
     (call-with-result
@@ -97,12 +95,13 @@
   (define (arity->parameter-list p)
     (define (nparams n)
       (map (lambda (n) (string->symbol (format "x~a" n))) (iota n)))
+    (define (add-opt pl)
+      (cons (append (if (null? pl) '() (car pl)) '(...)) pl))
     (let* ((m (procedure-arity-mask p))
            (pm (if (< m 0) (+ 1 (lognot m)) m))
            (n (if (> pm 0) (/ (log pm) (log 2)) 0)))
       (let loop ((k 1) (pl '()))
-        (cond ((> k n)
-               (reverse (if (< m 0) (cons (append (car pl) '(...)) pl) pl)))
+        (cond ((> k n) (reverse (if (< m 0) (add-opt pl) pl)))
               ((logbit? k pm) (loop (+ k 1) (cons (nparams k) pl)))
               (else (loop (+ k 1) pl))))))
 
@@ -129,6 +128,22 @@
                 (list (vector->list (record-type-field-names rtd))))]
              [else #f]))))
 
+  (define (value->string x)
+    (define max-len 80)
+    (define sub-str "...")
+    (define sub-len (- max-len (string-length sub-str)))
+    (let* ((s (write-to-string x))
+           (l (string-length s)))
+      (if (<= l max-len) s (string-append (substring s 0 sub-len) sub-str))))
+
+  (define not-found (gensym))
+
+  (define (try-eval sym)
+    (call/cc
+     (lambda (k)
+       (with-exception-handler (lambda (e) (k not-found))
+         (lambda () (eval sym))))))
+
   (define (operator-arglist operator)
     (define (procedure-parameter-list p)
       (and (procedure? p)
@@ -140,13 +155,12 @@
             (else `(("required" . ,(reverse req))
                     ("optional" ,args)))))
     (define (autodoc-arglist arglist) (autodoc-arglist* arglist '()))
-    (let ([binding (with-exception-handler (lambda (e) #f)
-                     (lambda () (eval operator)))])
-      (if binding
+    (let ([binding (try-eval operator)])
+      (if (not (eq? binding not-found))
           (let ([arglists (procedure-parameter-list binding)])
             (if arglists
                 `(,operator ("args" ,@(map autodoc-arglist arglists)))
-                `(,operator ("value" . ,(write-to-string binding)))))
+                `(,operator ("value" . ,(value->string binding)))))
           '())))
 
   (define (geiser:autodoc ids . rest)
