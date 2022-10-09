@@ -48,8 +48,9 @@
 (geiser-custom--defcustom geiser-chez-init-file "~/.chez-geiser"
   "Initialization file with user code for the Chez REPL.
 
-Do mind that this file is local to running process, so remote process will use
-init file at this location in remote host."
+Do mind that this file is local to running process, so remote
+process will use an init file at this location in the remote
+host."
   :type 'string
   :group 'geiser-chez)
 
@@ -84,46 +85,38 @@ init file at this location in remote host."
   (expand-file-name "src" (file-name-directory load-file-name))
   "Directory where the Chez scheme geiser modules are installed.")
 
+(defun geiser-chez--init-file ()
+  "Possibly remote init file, when it exists, as a list."
+  (let* ((file (and (stringp geiser-chez-init-file)
+                    (expand-file-name geiser-chez-init-file)))
+         (file (and file (concat (file-remote-p default-directory) file))))
+    (if (and file (file-exists-p file))
+        (list file)
+      (geiser-log--info "Init file not readable (%s)" file)
+      nil)))
+
+(defun geiser-chez--module-files ()
+  "Possibly remote list of scheme files used by chez."
+  (let ((local-file (expand-file-name "geiser/geiser.ss" geiser-chez-scheme-dir)))
+    (if (file-remote-p default-directory)
+        (let* ((temporary-file-directory (temporary-file-directory))
+               (temp-dir (make-temp-file "geiser" t))
+               (remote (concat (file-name-as-directory temp-dir) "geiser.ss")))
+          (with-temp-buffer
+            (insert-file-contents local-file)
+            (write-file remote))
+          (list (file-local-name remote)))
+      (list local-file))))
+
 (defun geiser-chez--parameters ()
   "Return a list with all parameters needed to start Chez Scheme.
+
 This function uses `geiser-chez-init-file' if it exists."
-  (append
-   (when-let ((init-file (and (stringp geiser-chez-init-file)
-                              (expand-file-name geiser-chez-init-file))))
-     (if (file-exists-p
-          (concat
-           (file-remote-p default-directory)
-           init-file))
-         (list init-file)
-       (geiser-log--warn
-        "File %s does not exist, so it's not added to CLI args"
-        init-file)))
-   (let* ((local-geiser-module-file
-           (expand-file-name "geiser/geiser.ss" geiser-chez-scheme-dir))
-          (geiser-module-file
-           (if (file-remote-p default-directory)
-               ;; copy the content to remote file
-               (let* ((temporary-file-directory (temporary-file-directory))
-                      (temp-dir
-                       (make-temp-file "geiser" t))
-                      (remote-geiser-module-file
-                       (concat
-                        (file-name-as-directory
-                         temp-dir)
-                        "geiser.ss")))
-                 ;; write to file
-                 (with-temp-buffer
-                   (insert-file-contents local-geiser-module-file)
-                   (write-file remote-geiser-module-file))
-                 (file-local-name
-                  remote-geiser-module-file))
-             ;; else, process and file are local
-             local-geiser-module-file)))
-     (list geiser-module-file))
-   geiser-chez-extra-command-line-parameters))
+  (append (geiser-chez--init-file)
+          (geiser-chez--module-files)
+          geiser-chez-extra-command-line-parameters))
 
 (defconst geiser-chez--prompt-regexp "> ")
-
 (defconst geiser-chez--debugger-prompt-regexp "debug> $\\|break> $\\|.+: $")
 
 
