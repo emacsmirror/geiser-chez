@@ -208,6 +208,7 @@ host."
     "fluid-let-syntax"
     "meta"
     "meta-cond"
+    "module"
     "record-case"
     "trace-case-lambda"
     "trace-define"
@@ -244,6 +245,7 @@ host."
  (fluid-let-syntax 1)
  (meta 0)
  (meta-cond 0)
+ (module 1)
  (record-case 1)
  (trace-case-lambda 1)
  (trace-define 1)
