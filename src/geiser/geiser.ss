@@ -18,9 +18,10 @@
               (lambda (e)
                 (debug-condition e)     ; save the condition for the debugger
                 (k `((result "")
-                     (output . ,(with-output-to-string
-                                  (lambda () (display-condition e))))
-                     (error (key . condition)))))
+                     (output . ,(get-output-string output-string))
+                     (error (key . condition)
+                            (msg . ,(with-output-to-string
+                                      (lambda () (display-condition e))))))))
             (lambda ()
               (call-with-values
                   (lambda ()
