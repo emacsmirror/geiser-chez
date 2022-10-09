@@ -9,6 +9,12 @@
           geiser:macroexpand)
   (import (chezscheme))
 
+  (define-syntax as-string
+    (syntax-rules () ((_ b ...) (with-output-to-string (lambda () b ...)))))
+
+  (define (write-to-string x) (as-string (write x)))
+  (define (pretty-string x) (as-string (pretty-print x)))
+
   (define (call-with-result thunk)
     (let ((output-string (open-output-string)))
       (write
@@ -20,17 +26,14 @@
                 (k `((result "")
                      (output . ,(get-output-string output-string))
                      (error (key . condition)
-                            (msg . ,(with-output-to-string
-                                      (lambda () (display-condition e))))))))
+                            (msg . ,(as-string (display-condition e)))))))
             (lambda ()
               (call-with-values
                   (lambda ()
                     (parameterize ((current-output-port output-string)) (thunk)))
                 (lambda result
-                  `((result ,(with-output-to-string
-                               (lambda ()
-                                 (pretty-print
-                                  (if (null? (cdr result)) (car result) result)))))
+                  `((result ,(pretty-string
+                              (if (null? (cdr result)) (car result) result)))
                     (output . ,(get-output-string output-string))))))))))
       (newline)
       (close-output-port output-string)))
@@ -70,9 +73,6 @@
                     (string-prefix? prefix el))
                   (map write-to-string
                        (environment-symbols (interaction-environment))))))
-
-  (define (write-to-string x)
-    (with-output-to-string (lambda () (write x))))
 
   (define (geiser:eval module form)
     (call-with-result
