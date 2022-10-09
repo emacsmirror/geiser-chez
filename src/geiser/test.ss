@@ -4,8 +4,7 @@
 (define-syntax assert-equal
   (syntax-rules ()
     ((_ a b)
-     (if (equal? a b)
-         #t
+     (or (equal? a b)
          (begin
            (display (format "failed assertion `~a' == `~a'" a b))
            (assert (equal? a b)))))))
@@ -19,41 +18,29 @@
 
 (define-syntax do-test
   (syntax-rules ()
-    ((_ form result)
-     (assert
-      (equal?
-       (get-result form)
-       result)))))
+    ((_ form result) (assert-equal (get-result form) result))))
 
 (define-syntax do-test-macroexpand
   (syntax-rules ()
-    ((_ form result)
-     (assert
-      (equal? (geiser:macroexpand form)
-              result)))))
+    ((_ form result) (assert-equal (geiser:macroexpand form) result))))
 
 (define-syntax test-or
   (syntax-rules ()
     ((_ x) x)
     ((_ x xs ...)
-     (if x
-         x
-         (test-or xs ...)))))
+     (if x x (test-or xs ...)))))
 
-(do-test-macroexpand
- '(test-or 1)
- '1)
+(do-test-macroexpand '(test-or 1) "1\n")
 
-(do-test-macroexpand
- '(test-or 1 2)
- '(if 1 1 2))
+(do-test-macroexpand '(test-or 1 2) "(if 1 1 2)\n")
 
 ;; (something-doesnot-exist)
 ;;=> Error: Exception: variable something-doesnot-exist is not bound
 (do-test
  '(something-doesnot-exist)
- "((result \"\") (output . \"\") (error (key . \"Exception: variable something-doesnot-exist is not bound\")))\n"
- )
+ (string-append "((result \"\") (output . \"\") (error (key . condition) (msg . "
+                "\"Exception: variable something-doesnot-exist is not bound\")))"
+                "\n"))
 
 ;; (make-violation)
 ;;=> #<condition &violation>
