@@ -94,71 +94,66 @@
               (substring? prefix el))
             (map write-to-string (library-list))))
 
-  (define (procedure-parameter-list p)
+  (define (arity->parameter-list p)
+    (define (nparams n)
+      (map (lambda (n) (string->symbol (format "x~a" n))) (iota n)))
+    (let* ((m (procedure-arity-mask p))
+           (pm (if (< m 0) (+ 1 (lognot m)) m))
+           (n (if (> pm 0) (/ (log pm) (log 2)) 0)))
+      (let loop ((k 1) (pl '()))
+        (cond ((> k n)
+               (reverse (if (< m 0) (cons (append (car pl) '(...)) pl) pl)))
+              ((logbit? k pm) (loop (+ k 1) (cons (nparams k) pl)))
+              (else (loop (+ k 1) pl))))))
+
+  (define (source->parameter-list p)
     ;; same as (inspect object), then hitting c
-    (let ((s (((inspect/object p) 'code) 'source)))
-      (if s
-          (let ((form (s 'value)))
-            (if (and (list? form)
-                     (>= (length form) 2))
-                (case (car form)
-                  [(lambda) (list (cadr form))]
-                  [(case-lambda) (map car (cdr form))]
-                  [(record-predicate record-accessor)
-                   (list (list (record-type-name (cadr (cadr form)))))]
-                  [(record-mutator)
-                   (let ([rtd (cadr (cadr form))]
-                         [field-idx (caddr form)])
-                     (list (list (record-type-name rtd)
-                                 (vector-ref (record-type-field-names rtd) field-idx))))]
-                  [(record-constructor)
-                   (let* ([rcd (cadr (cadr form))]
-                          [rtd (((inspect/object rcd) 'ref 'rtd) 'value)])
-                     (list (vector->list (record-type-field-names rtd))))]
-                  [else #f])
-                #f))
-          #f)))
+    (let* ((s (((inspect/object p) 'code) 'source))
+           (form (and s (s 'value))))
+      (and (list? form)
+           (>= (length form) 2)
+           (case (car form)
+             [(lambda) (list (cadr form))]
+             [(case-lambda) (map car (cdr form))]
+             [(record-predicate record-accessor)
+              (list (list (record-type-name (cadr (cadr form)))))]
+             [(record-mutator)
+              (let ([rtd (cadr (cadr form))]
+                    [field-idx (caddr form)])
+                (list (list (record-type-name rtd)
+                            (vector-ref (record-type-field-names rtd)
+                                        field-idx))))]
+             [(record-constructor)
+              (let* ([rcd (cadr (cadr form))]
+                     [rtd (((inspect/object rcd) 'ref 'rtd) 'value)])
+                (list (vector->list (record-type-field-names rtd))))]
+             [else #f]))))
 
   (define (operator-arglist operator)
-    (define (make-autodoc-arglist arglist)
-      (let loop ([arglist arglist]
-                 [optionals? #f]
-                 [required '()]
-                 [optional '()])
-        (cond ((null? arglist)
-               `(("required" ,@(reverse required))
-                 ("optional" ,@(reverse optional))
-                 ("key")
-                 ;; ("module" ,module)
-                 ))
-              ((symbol? arglist)
-               (loop '()
-                     #t
-                     required
-                     (cons "..." (cons arglist optional))))
-              (else
-               (loop
-                (cdr arglist)
-                optionals?
-                (if optionals? required (cons (car arglist) required))
-                (if optionals? (cons (car arglist) optional) optional))))))
-    (let ([binding (eval operator)])
+    (define (procedure-parameter-list p)
+      (and (procedure? p)
+           (or (source->parameter-list p)
+               (arity->parameter-list p))))
+    (define (autodoc-arglist* args req)
+      (cond ((null? args) (list (list* "required" (reverse req))))
+            ((pair? args) (autodoc-arglist* (cdr args) (cons (car args) req)))
+            (else `(("required" . ,(reverse req))
+                    ("optional" ,args)))))
+    (define (autodoc-arglist arglist) (autodoc-arglist* arglist '()))
+    (let ([binding (with-exception-handler (lambda (e) #f)
+                     (lambda () (eval operator)))])
       (if binding
           (let ([arglists (procedure-parameter-list binding)])
-            `(,operator ("args" ,@(map make-autodoc-arglist arglists))))
+            (if arglists
+                `(,operator ("args" ,@(map autodoc-arglist arglists)))
+                `(,operator ("value" . ,(write-to-string binding)))))
           '())))
-
 
   (define (geiser:autodoc ids . rest)
     (cond ((null? ids) '())
-          ((not (list? ids))
-           (geiser:autodoc (list ids)))
-          ((not (symbol? (car ids)))
-           (geiser:autodoc (cdr ids)))
-          (else
-           (map (lambda (id)
-                  (operator-arglist id))
-                ids))))
+          ((not (list? ids)) (geiser:autodoc (list ids)))
+          ((not (symbol? (car ids))) (geiser:autodoc (cdr ids)))
+          (else (map operator-arglist ids))))
 
   (define (geiser:no-values)
     #f)
