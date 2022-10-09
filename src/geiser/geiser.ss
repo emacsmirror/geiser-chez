@@ -164,20 +164,16 @@
                 `(,operator ("value" . ,(value->string binding)))))
           '())))
 
-  (define (geiser:autodoc ids . rest)
+  (define (geiser:autodoc ids)
     (cond ((null? ids) '())
           ((not (list? ids)) (geiser:autodoc (list ids)))
           ((not (symbol? (car ids))) (geiser:autodoc (cdr ids)))
           (else (map operator-arglist ids))))
 
-  (define (geiser:no-values)
-    #f)
+  (define (geiser:no-values) #f)
 
-  (define (geiser:newline)
-    #f)
+  (define (geiser:newline) #f)
 
   (define (geiser:macroexpand form . rest)
     (with-output-to-string
-      (lambda ()
-        (pretty-print
-         (syntax->datum (expand form)))))))
+      (lambda () (pretty-print (syntax->datum (expand form)))))))
