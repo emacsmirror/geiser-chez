@@ -8,7 +8,8 @@
           geiser:newline
           geiser:macroexpand
           geiser:symbol-location
-          geiser:module-location)
+          geiser:module-location
+          geiser:add-to-load-path)
   (import (chezscheme))
 
   (define-syntax as-string
@@ -60,7 +61,12 @@
        (lambda ()
          (with-output-to-string
            (lambda () (maybe-compile-file filename output-filename)))
-         (load output-filename)))))
+         (parameterize ([compile-imported-libraries #t])
+           (load output-filename))))))
+
+  (define (geiser:add-to-load-path path)
+    (let ((p (cons path path)))
+      (library-directories (cons p (remove p (library-directories))))))
 
   (define string-prefix?
     (lambda (x y)
