@@ -55,13 +55,17 @@
 
   (define (obj-file-name name) (with-extension name ".so"))
 
+  (define (file-directory filename)
+    (let ((idx (last-index-of (string->list filename) #\/ 0 -1)))
+      (if (= idx -1) filename (substring filename 0 idx))))
+
   (define (geiser:load-file filename)
     (let ((output-filename (obj-file-name filename)))
       (call-with-result
        (lambda ()
-         (with-output-to-string
-           (lambda () (maybe-compile-file filename output-filename)))
-         (parameterize ([compile-imported-libraries #t])
+         (parameterize ([current-directory (file-directory filename)])
+           (with-output-to-string
+             (lambda () (maybe-compile-file filename output-filename)))
            (load output-filename))))))
 
   (define (geiser:add-to-load-path path)
