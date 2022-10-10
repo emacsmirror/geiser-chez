@@ -6,7 +6,9 @@
           geiser:no-values
           geiser:load-file
           geiser:newline
-          geiser:macroexpand)
+          geiser:macroexpand
+          geiser:symbol-location
+          geiser:module-location)
   (import (chezscheme))
 
   (define-syntax as-string
@@ -44,11 +46,13 @@
         (last-index-of (cdr str-list) char (+ 1 idx)
                        (if (char=? char (car str-list)) idx last-idx))))
 
-  (define (obj-file-name name)
+  (define (with-extension name ext)
     (let ((idx (last-index-of (string->list name) #\. 0 -1)))
       (if (= idx -1)
-          (string-append name ".so")
-          (string-append (substring name 0 idx) ".so"))))
+          (string-append name ext)
+          (string-append (substring name 0 idx) ext))))
+
+  (define (obj-file-name name) (with-extension name ".so"))
 
   (define (geiser:load-file filename)
     (let ((output-filename (obj-file-name filename)))
@@ -170,6 +174,31 @@
           ((not (list? ids)) (geiser:autodoc (list ids)))
           ((not (symbol? (car ids))) (geiser:autodoc (cdr ids)))
           (else (map operator-arglist ids))))
+
+  (define (geiser:symbol-location id)
+    (let* ([b (try-eval id)]
+           [c (and (not (eq? not-found b))
+                   ((inspect/object b) 'code))])
+      (if c
+          (call-with-values (lambda () (c 'source-path))
+            (lambda (path line . col)
+              (let ((line (if (null? col) '() line))
+                    (char (if (null? col) line '()))
+                    (col (if (null? col) '() (car col))))
+                `(("name" . ,(c 'name))
+                  ("file" . ,path)
+                  ("line" . ,line)
+                  ("column" . ,col)
+                  ("char" . ,char)))))
+          '())))
+
+  (define (geiser:module-location id)
+    (let ((obj (library-object-filename id)))
+      (let loop ((exts (if obj (map car (library-extensions)) '())))
+        (cond ((null? exts) '())
+              ((file-exists? (with-extension obj (car exts)))
+               `(("file" . ,(with-extension obj (car exts)))))
+              (else (loop (cdr exts)))))))
 
   (define (geiser:no-values) #f)
 
