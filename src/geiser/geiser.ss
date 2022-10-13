@@ -1,3 +1,14 @@
+;;; geiser.ss -- emacs/scheme interface
+
+;; Copyright (c) 2022 Jose A Ortega Ruiz
+
+;; This program is free software; you can redistribute it and/or
+;; modify it under the terms of the Modified BSD License. You should
+;; have received a copy of the license along with this program. If
+;; not, see <http://www.xfree86.org/3.3.6/COPYRIGHT2.html#5>.
+
+;; Start date: Tue Apr 26 22:27:26 2016 +0200
+
 (library (geiser)
   (export geiser:eval
           geiser:completions
@@ -11,12 +22,17 @@
           geiser:module-location
           geiser:add-to-load-path)
   (import (chezscheme))
+  (import (geiser-data))
 
   (define-syntax as-string
     (syntax-rules () ((_ b ...) (with-output-to-string (lambda () b ...)))))
 
   (define (write-to-string x) (as-string (write x)))
-  (define (pretty-string x) (as-string (pretty-print x)))
+
+  (define (pretty-string x)
+    (parameterize ((print-extended-identifiers #t)
+                   (print-vector-length #t))
+      (as-string (pretty-print x))))
 
   (define (call-with-result thunk)
     (let ((output-string (open-output-string)))
@@ -35,7 +51,7 @@
                   (lambda ()
                     (parameterize ((current-output-port output-string)) (thunk)))
                 (lambda result
-                  `((result ,(pretty-string
+                  `((result ,(write-to-string
                               (if (null? (cdr result)) (car result) result)))
                     (output . ,(get-output-string output-string))))))))))
       (newline)
@@ -90,15 +106,27 @@
 
   (define not-found (gensym))
 
+  (define current-environment (make-parameter environment?))
+
+  (define (module-env env)
+    (cond ((environment? env) env)
+          ((list? env) (environment env))
+          (else #f)))
+
   (define (try-eval sym . env)
     (call/cc
      (lambda (k)
        (with-exception-handler (lambda (e) (k not-found))
-         (lambda () (if (null? env) (eval sym) (eval sym (car env))))))))
+         (let ((env (and (not (null? env)) (module-env (car env)))))
+           (lambda () (if env (eval sym env) (eval sym))))))))
 
   (define (geiser:eval module form)
     (call-with-result
-     (lambda () (if module (eval form (environment module)) (eval form)))))
+     (lambda ()
+       (parameterize ((current-environment (module-env module)))
+         (if (environment? (current-environment))
+             (eval form (current-environment))
+             (eval form))))))
 
   (define (geiser:module-completions prefix . rest)
     (define (substring? s1 s2)
@@ -155,14 +183,19 @@
     (define max-len 80)
     (define sub-str "...")
     (define sub-len (- max-len (string-length sub-str)))
-    (let* ((s (write-to-string x))
+    (let* ((s (pretty-string x))
            (l (string-length s)))
       (if (<= l max-len) s (string-append (substring s 0 sub-len) sub-str))))
 
+  (define (docs->parameter-list id)
+    (let ((s (symbol-signature id)))
+      (and s (list s))))
+
   (define (operator-arglist operator)
-    (define (procedure-parameter-list p)
+    (define (procedure-parameter-list id p)
       (and (procedure? p)
            (or (source->parameter-list p)
+               (docs->parameter-list id)
                (arity->parameter-list p))))
     (define (autodoc-arglist* args req)
       (cond ((null? args) (list (list* "required" (reverse req))))
@@ -172,12 +205,13 @@
     (define (autodoc-arglist arglist) (autodoc-arglist* arglist '()))
     (let ([binding (try-eval operator)])
       (if (not (eq? binding not-found))
-          (let ([arglists (procedure-parameter-list binding)])
+          (let ([arglists (procedure-parameter-list operator binding)])
             (cond ((null? arglists) `(,operator ("args" (("required")))))
                   (arglists
                    `(,operator ("args" ,@(map autodoc-arglist arglists))))
                   (else `(,operator ("value" . ,(value->string binding))))))
-          '())))
+          (let ((s (symbol-signature operator)))
+            (if s `(,operator ("args" (("required" ,@s)))) '())))))
 
   (define (geiser:autodoc ids)
     (cond ((null? ids) '())
@@ -185,8 +219,8 @@
           ((not (symbol? (car ids))) (geiser:autodoc (cdr ids)))
           (else (map operator-arglist ids))))
 
-  (define (geiser:symbol-location id)
-    (let* ([b (try-eval id)]
+  (define (geiser:symbol-location id . env)
+    (let* ([b (try-eval id (current-environment))]
            [c (and (not (eq? not-found b))
                    ((inspect/object b) 'code))])
       (if c

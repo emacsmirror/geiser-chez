@@ -1,4 +1,4 @@
-;;; geiser-chez.el --- Chez Scheme's implementation of the geiser protocols  -*- lexical-binding: t; -*-
+;;; geiser-chez.el --- Chez and Geiser talk to each other  -*- lexical-binding: t; -*-
 
 ;; Author: Peter <craven@gmx.net>
 ;; Maintainer: Jose A Ortega Ruiz <jao@gnu.org>
@@ -84,8 +84,8 @@ host."
   (expand-file-name "src" (file-name-directory load-file-name))
   "Directory where the Chez scheme geiser modules are installed.")
 
-(defun geiser-chez--init-file ()
-  "Possibly remote init file, when it exists, as a list."
+(defun geiser-chez--init-files ()
+  "Possibly remote init file(s), when they exist, as a list."
   (let* ((file (and (stringp geiser-chez-init-file)
                     (expand-file-name geiser-chez-init-file)))
          (file (and file (concat (file-remote-p default-directory) file))))
@@ -94,22 +94,27 @@ host."
       (geiser-log--info "Init file not readable (%s)" file)
       nil)))
 
-(defun geiser-chez--module-files ()
-  "Possibly remote list of scheme files used by chez."
-  (let ((local-file (expand-file-name "geiser/geiser.ss" geiser-chez-scheme-dir)))
+(defun geiser-chez--module-file (file)
+  "Copy, if needed, the given scheme file to its remote destination.
+Return its local name."
+  (let ((local (expand-file-name (concat "geiser/" file) geiser-chez-scheme-dir)))
     (if (file-remote-p default-directory)
         (let* ((temporary-file-directory (temporary-file-directory))
                (temp-dir (make-temp-file "geiser" t))
                (remote (concat (file-name-as-directory temp-dir) "geiser.ss")))
           (with-temp-buffer
-            (insert-file-contents local-file)
+            (insert-file-contents local)
             (write-file remote))
-          (list (file-local-name remote)))
-      (list local-file))))
+          (file-local-name remote))
+      local)))
+
+(defun geiser-chez--module-files ()
+  "List of (possibly copied to a tramped remote) scheme files used by chez."
+  (mapcar #'geiser-chez--module-file '("geiser-data.ss" "geiser.ss")))
 
 (defun geiser-chez--parameters ()
   "Return a list with all parameters needed to start Chez Scheme."
-  (append (geiser-chez--init-file)
+  (append (cons "--compile-imported-libraries" (geiser-chez--init-files))
           (geiser-chez--module-files)
           geiser-chez-extra-command-line-parameters))
 
@@ -283,8 +288,8 @@ host."
   ;; (external-help geiser-chez--manual-look-up)
   ;; (check-buffer geiser-chez--guess)
   (keywords geiser-chez--keywords)
-  ;; (case-sensitive geiser-chez-case-sensitive-p)
-  )
+  (nested-definitions t)
+  (case-sensitive nil))
 
 (geiser-implementation-extension 'chez "ss")
 
