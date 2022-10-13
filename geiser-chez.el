@@ -143,23 +143,25 @@ Return its local name."
                          ((car args) (concat "'" (car args)))
                          (t "#f"))))
        (format "(geiser:eval %s '%s)" module form)))
-    ((load-file compile-file)
-     (format "(geiser:load-file %s)" (car args)))
-    ((no-values)
-     "(geiser:no-values)")
-    (t
-     (let ((form (mapconcat 'identity args " ")))
-       (format "(geiser:%s %s)" proc form)))))
+    ((load-file compile-file) (format "(geiser:load-file %s)" (car args)))
+    ((no-values) "(geiser:no-values)")
+    (t (let ((form (mapconcat 'identity args " ")))
+         (format "(geiser:%s %s)" proc form)))))
+
+(defun geiser-chez--current-library ()
+  "Find current library."
+  (save-excursion
+    (geiser-syntax--pop-to-top)
+    (when (looking-at "(library[ \n]+\\(([^)]+)\\)")
+      (geiser-chez--get-module (match-string 1)))))
 
 (defun geiser-chez--get-module (&optional module)
-  "Find current module, or normalize MODULE."
-  (cond ((null module)
-         :f)
+  "Find current module (libraries for Chez), or normalize MODULE."
+  (cond ((null module) :f)
+        ;; ((null module) (or (geiser-chez--current-library) :f))
         ((listp module) module)
-        ((stringp module)
-         (condition-case nil
-             (car (geiser-syntax--read-from-string module))
-           (error :f)))
+        ((and (stringp module)
+              (ignore-errors (car (geiser-syntax--read-from-string module)))))
         (t :f)))
 
 (defun geiser-chez--symbol-begin (module)
