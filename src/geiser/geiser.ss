@@ -187,7 +187,7 @@
            (l (string-length s)))
       (if (<= l max-len) s (string-append (substring s 0 sub-len) sub-str))))
 
-  (define (operator-arglist operator)
+  (define (id-autodoc id)
     (define (procedure-parameter-list id p)
       (and (procedure? p)
            (or (source->parameter-list p)
@@ -199,21 +199,19 @@
             (else `(("required" . ,(reverse req))
                     ("optional" ,args)))))
     (define (autodoc-arglist arglist) (autodoc-arglist* arglist '()))
-    (let ([binding (try-eval operator)])
+    (define (signature as) `(,id ("args" ,@(map autodoc-arglist as))))
+    (let ([binding (try-eval id)])
       (if (not (eq? binding not-found))
-          (let ([arglists (procedure-parameter-list operator binding)])
-            (cond ((null? arglists) `(,operator ("args" (("required")))))
-                  (arglists
-                   `(,operator ("args" ,@(map autodoc-arglist arglists))))
-                  (else `(,operator ("value" . ,(value->string binding))))))
-          (let ((s (symbol-signatures operator)))
-            (if s `(,operator ("args" ,@(map autodoc-arglist s))) '())))))
+          (let ([as (procedure-parameter-list id binding)])
+            (if as (signature as) `(,id ("value" . ,(value->string binding)))))
+          (let ((s (symbol-signatures id)))
+            (if s (signature s) '())))))
 
   (define (geiser:autodoc ids)
     (cond ((null? ids) '())
           ((not (list? ids)) (geiser:autodoc (list ids)))
           ((not (symbol? (car ids))) (geiser:autodoc (cdr ids)))
-          (else (map operator-arglist ids))))
+          (else (map id-autodoc ids))))
 
   (define (geiser:symbol-location id . env)
     (let* ([b (try-eval id (current-environment))]
