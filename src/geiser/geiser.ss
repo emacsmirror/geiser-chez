@@ -187,15 +187,11 @@
            (l (string-length s)))
       (if (<= l max-len) s (string-append (substring s 0 sub-len) sub-str))))
 
-  (define (docs->parameter-list id)
-    (let ((s (symbol-signature id)))
-      (and s (list s))))
-
   (define (operator-arglist operator)
     (define (procedure-parameter-list id p)
       (and (procedure? p)
            (or (source->parameter-list p)
-               (docs->parameter-list id)
+               (symbol-signatures id)
                (arity->parameter-list p))))
     (define (autodoc-arglist* args req)
       (cond ((null? args) (list (list* "required" (reverse req))))
@@ -210,8 +206,8 @@
                   (arglists
                    `(,operator ("args" ,@(map autodoc-arglist arglists))))
                   (else `(,operator ("value" . ,(value->string binding))))))
-          (let ((s (symbol-signature operator)))
-            (if s `(,operator ("args" (("required" ,@s)))) '())))))
+          (let ((s (symbol-signatures operator)))
+            (if s `(,operator ("args" ,@(map autodoc-arglist s))) '())))))
 
   (define (geiser:autodoc ids)
     (cond ((null? ids) '())

@@ -17,20 +17,23 @@
 
 (library (geiser-data)
 
-  (export symbol-signature symbol-labels)
+  (export symbol-signatures symbol-labels)
   (import (chezscheme))
 
   (define (make-hash d)
     (let ((h (make-hashtable symbol-hash eq?)))
       (for-each (lambda (x)
                   (let ((id (car x))
-                        (sg (let ((a (with-input-from-string (cadr x) read)))
-                              (if (list? a) (cdr a) a))))
-                    (symbol-hashtable-set! h id (cons id (cons sg (cddr x))))))
+                        (sgs (let* ((s (format "(~a)" (cadr x)))
+                                    (as (with-input-from-string s read)))
+                               (and (list? as)
+                                    (list? (car as))
+                                    (map cdr (remove '~ as))))))
+                    (symbol-hashtable-set! h id (cons id (cons sgs (cddr x))))))
                 d)
       h))
 
-  (define (symbol-signature s)
+  (define (symbol-signatures s)
     (let ((x (or (symbol-hashtable-ref csug-data s #f)
                  (symbol-hashtable-ref tspl-data s #f))))
       (and x (list? (cadr x)) (cadr x))))
