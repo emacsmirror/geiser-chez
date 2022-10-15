@@ -41,9 +41,10 @@
         (lambda (k)
           (with-exception-handler
               (lambda (e)
-                (debug-condition e)     ; save the condition for the debugger
+                (debug-condition e) ; save the condition for the debugger
                 (k `((result "")
                      (output . ,(get-output-string output-string))
+                     (debug #t)
                      (error (key . condition)
                             (msg . ,(as-string (display-condition e)))))))
             (lambda ()
@@ -106,12 +107,12 @@
 
   (define not-found (gensym))
 
-  (define current-environment (make-parameter environment?))
-
   (define (module-env env)
     (cond ((environment? env) env)
           ((list? env) (environment env))
           (else #f)))
+
+  (define current-environment (make-parameter #f module-env))
 
   (define (try-eval sym . env)
     (call/cc
@@ -123,7 +124,7 @@
   (define (geiser:eval module form)
     (call-with-result
      (lambda ()
-       (parameterize ((current-environment (module-env module)))
+       (parameterize ((current-environment module))
          (if (environment? (current-environment))
              (eval form (current-environment))
              (eval form))))))

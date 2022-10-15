@@ -31,7 +31,7 @@
 
 (eval-when-compile (require 'cl-lib))
 
-;;; Customization:
+;;; Customization
 
 (defgroup geiser-chez nil
   "Customization for Geiser's Chez Scheme flavour."
@@ -40,8 +40,7 @@
 (geiser-custom--defcustom geiser-chez-binary
     "scheme"
   "Name to use to call the Chez Scheme executable when starting a REPL."
-  :type '(choice string (repeat string))
-  :group 'geiser-chez)
+  :type '(choice string (repeat string)))
 
 (geiser-custom--defcustom geiser-chez-init-file "~/.chez-geiser"
   "Initialization file with user code for the Chez REPL.
@@ -49,30 +48,30 @@
 Do mind that this file is local to running process, so remote
 process will use an init file at this location in the remote
 host."
-  :type 'string
-  :group 'geiser-chez)
+  :type 'string)
 
 (geiser-custom--defcustom geiser-chez-extra-command-line-parameters '()
   "Additional parameters to supply to the Chez binary."
-  :type '(repeat string)
-  :group 'geiser-chez)
+  :type '(repeat string))
 
 (geiser-custom--defcustom geiser-chez-extra-keywords '()
   "Extra keywords highlighted in Chez Scheme buffers."
-  :type '(repeat string)
-  :group 'geiser-chez)
+  :type '(repeat string))
 
 (geiser-custom--defcustom geiser-chez-debug-on-exception nil
-  "Whether to automatically enter the debugger when catching an exception"
-  :type 'boolean
-  :group 'geiser-chez)
+  "Whether to automatically enter the debugger when an evaluation throws."
+  :type 'boolean)
 
 (define-obsolete-variable-alias 'geiser-chez-debug-on-exception-p
   'geiser-chez-debug-on-exception "0.18")
 
+(geiser-custom--defcustom geiser-chez-show-error-on-debug t
+  "Whether to issue a `show condition' command upon entering the debugger."
+  :type 'boolean)
+
 (defconst geiser-chez-minimum-version "9.4")
 
-;;; REPL support:
+;;; REPL support
 
 (defun geiser-chez--binary ()
   "Return path to Chez scheme binary."
@@ -132,7 +131,7 @@ Return its local name."
     (geiser-eval--send/wait
      "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
 
-;;; Evaluation support:
+;;; Evaluation support
 
 (defun geiser-chez--geiser-procedure (proc &rest args)
   "Transform PROC in string for a scheme procedure using ARGS."
@@ -180,19 +179,15 @@ Return its local name."
   "(exit 0)")
 
 
-;;; Error display:
+;;; Error display and debugger
 
 (defun geiser-chez--enter-debugger ()
   "Tell Geiser to interact with the debugger."
   (when geiser-chez-debug-on-exception
-    (geiser-switch nil 'chez)
-    (let ((bt-cmd "\n(debug)\n")
-          (repl-buffer (geiser-repl--repl/impl 'chez)))
-      (compilation-forget-errors)
-      (goto-char (point-max))
-      (geiser-repl--prepare-send)
-      (comint-send-string repl-buffer bt-cmd)
-      (ignore-errors (next-error)))
+    (geiser-repl-switch  nil 'chez)
+    (compilation-forget-errors)
+    (geiser-repl--send "(debug)")
+    (when geiser-chez-show-error-on-debug (geiser-repl--send "s"))
     t))
 
 (defun geiser-chez--display-error (_module key msg)
@@ -202,7 +197,7 @@ Return its local name."
     (geiser-edit--buttonize-files)
     (not (zerop (length msg)))))
 
-;;; Keywords and syntax:
+;;; Keywords and syntax
 
 (defconst geiser-chez--builtin-keywords
   '("call-with-input-file"
