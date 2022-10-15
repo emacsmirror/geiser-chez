@@ -136,11 +136,13 @@ Return its local name."
 (defun geiser-chez--geiser-procedure (proc &rest args)
   "Transform PROC in string for a scheme procedure using ARGS."
   (cl-case proc
-    ((eval compile) (format "(geiser:eval '%s '%s)" (car args) (cadr args)))
+    ((eval compile)
+     (if (listp (cadr args))
+         (format "(geiser:ge:eval '%s '%s)" (car args) (cadr args))
+       (format "(geiser:eval '%s '%s)" (car args) (cadr args))))
     ((load-file compile-file) (format "(geiser:load-file %s)" (car args)))
     ((no-values) "(geiser:no-values)")
-    (t (let ((form (mapconcat 'identity args " ")))
-         (format "(geiser:%s %s)" proc form)))))
+    (t (list (format "geiser:%s" proc) (mapconcat 'identity args " ")))))
 
 (defun geiser-chez--current-library ()
   "Find current library."
@@ -151,8 +153,7 @@ Return its local name."
 
 (defun geiser-chez--get-module (&optional module)
   "Find current module (libraries for Chez), or normalize MODULE."
-  (cond ((null module) :f)
-        ;; ((null module) (or (geiser-chez--current-library) :f))
+  (cond ((null module) (or (geiser-chez--current-library) :f))
         ((listp module) module)
         ((and (stringp module)
               (ignore-errors (car (geiser-syntax--read-from-string module)))))

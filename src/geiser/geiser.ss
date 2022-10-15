@@ -11,6 +11,7 @@
 
 (library (geiser)
   (export geiser:eval
+          geiser:ge:eval
           geiser:completions
           geiser:module-completions
           geiser:autodoc
@@ -44,7 +45,7 @@
                 (debug-condition e) ; save the condition for the debugger
                 (k `((result "")
                      (output . ,(get-output-string output-string))
-                     (debug #t)
+                     (debug 1)
                      (error (key . condition)
                             (msg . ,(as-string (display-condition e)))))))
             (lambda ()
@@ -105,29 +106,30 @@
                   (map write-to-string
                        (environment-symbols (interaction-environment))))))
 
+  (define current-library (make-parameter #f))
+
+  (define (transitive-env . lib)
+    (let ((lib (if (null? lib) (current-library) (car lib))))
+      (and lib (apply environment lib (library-requirements lib)))))
+
   (define not-found (gensym))
 
-  (define (module-env env)
-    (cond ((environment? env) env)
-          ((list? env) (environment env))
-          (else #f)))
-
-  (define current-environment (make-parameter #f module-env))
-
-  (define (try-eval sym . env)
+  (define (try-eval sym)
     (call/cc
      (lambda (k)
        (with-exception-handler (lambda (e) (k not-found))
-         (let ((env (and (not (null? env)) (module-env (car env)))))
+         (let ((env (transitive-env)))
            (lambda () (if env (eval sym env) (eval sym))))))))
 
-  (define (geiser:eval module form)
+  (define (geiser:eval lib form)
     (call-with-result
      (lambda ()
-       (parameterize ((current-environment module))
-         (if (environment? (current-environment))
-             (eval form (current-environment))
-             (eval form))))))
+       (let ((env (transitive-env lib)))
+         (if env (eval form env) (eval form))))))
+
+  (define (geiser:ge:eval lib form)
+    (parameterize ([current-library lib])
+      (call-with-result (lambda () (eval form)))))
 
   (define (geiser:module-completions prefix . rest)
     (define (substring? s1 s2)
@@ -188,6 +190,11 @@
            (l (string-length s)))
       (if (<= l max-len) s (string-append (substring s 0 sub-len) sub-str))))
 
+  (define (known-symbol? id)
+    (memq id
+          (environment-symbols (or (transitive-env)
+                                   (interaction-environment)))))
+
   (define (id-autodoc id)
     (define (procedure-parameter-list id p)
       (and (procedure? p)
@@ -202,11 +209,11 @@
     (define (autodoc-arglist arglist) (autodoc-arglist* arglist '()))
     (define (signature as) `(,id ("args" ,@(map autodoc-arglist as))))
     (let ([binding (try-eval id)])
-      (if (not (eq? binding not-found))
-          (let ([as (procedure-parameter-list id binding)])
-            (if as (signature as) `(,id ("value" . ,(value->string binding)))))
-          (let ((s (symbol-signatures id)))
-            (if s (signature s) '())))))
+      (cond ((not (eq? binding not-found))
+             (let ([as (procedure-parameter-list id binding)])
+               (if as (signature as) `(,id ("value" . ,(value->string binding))))))
+            ((and (known-symbol? id) (symbol-signatures id)) => signature)
+            (else '()))))
 
   (define (geiser:autodoc ids)
     (cond ((null? ids) '())
@@ -214,8 +221,8 @@
           ((not (symbol? (car ids))) (geiser:autodoc (cdr ids)))
           (else (map id-autodoc ids))))
 
-  (define (geiser:symbol-location id . env)
-    (let* ([b (try-eval id (current-environment))]
+  (define (geiser:symbol-location id)
+    (let* ([b (try-eval id)]
            [c (and (not (eq? not-found b))
                    ((inspect/object b) 'code))])
       (if c
