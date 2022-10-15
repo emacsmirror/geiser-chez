@@ -22,8 +22,9 @@
           geiser:symbol-location
           geiser:module-location
           geiser:add-to-load-path)
-  (import (chezscheme))
-  (import (geiser-data))
+
+ (import (chezscheme))
+ (import (geiser-data))
 
   (define-syntax as-string
     (syntax-rules () ((_ b ...) (with-output-to-string (lambda () b ...)))))
@@ -99,18 +100,33 @@
                    (and (char=? (string-ref x i) (string-ref y i))
                         (prefix? (fx+ i 1)))))))))
 
-  (define (geiser:completions prefix . rest)
-    (sort string-ci<?
-          (filter (lambda (el)
-                    (string-prefix? prefix el))
-                  (map write-to-string
-                       (environment-symbols (interaction-environment))))))
-
   (define current-library (make-parameter #f))
 
   (define (transitive-env . lib)
     (let ((lib (if (null? lib) (current-library) (car lib))))
       (and lib (apply environment lib (library-requirements lib)))))
+
+  (define (known-symbols)
+    (let ((lib (current-library)))
+      (if lib
+          (apply append (map library-exports
+                             (cons lib (library-requirements lib))))
+          (environment-symbols (interaction-environment)))))
+
+  (define symbol-lib
+    (rec symbol-lib
+      (case-lambda
+        ((s)
+         (let ((libs (if (current-library)
+                         (cons (current-library)
+                               (library-requirements (current-library)))
+                         (interaction-environment))))
+           (symbol-lib s libs)))
+        ((s l)
+         (cond ((null? l) #f)
+               ((and (environment? l) (memq s (environment-symbols l))) "*top*")
+               ((memq s (library-exports (car l))) (car l))
+               (else (symbol-lib s (cdr l))))))))
 
   (define not-found (gensym))
 
@@ -130,6 +146,11 @@
   (define (geiser:ge:eval lib form)
     (parameterize ([current-library lib])
       (call-with-result (lambda () (eval form)))))
+
+  (define (geiser:completions prefix)
+    (sort string-ci<?
+          (filter (lambda (el) (string-prefix? prefix el))
+                  (map symbol->string (known-symbols)))))
 
   (define (geiser:module-completions prefix . rest)
     (define (substring? s1 s2)
@@ -190,11 +211,6 @@
            (l (string-length s)))
       (if (<= l max-len) s (string-append (substring s 0 sub-len) sub-str))))
 
-  (define (known-symbol? id)
-    (memq id
-          (environment-symbols (or (transitive-env)
-                                   (interaction-environment)))))
-
   (define (id-autodoc id)
     (define (procedure-parameter-list id p)
       (and (procedure? p)
@@ -207,12 +223,15 @@
             (else `(("required" . ,(reverse req))
                     ("optional" ,args)))))
     (define (autodoc-arglist arglist) (autodoc-arglist* arglist '()))
-    (define (signature as) `(,id ("args" ,@(map autodoc-arglist as))))
-    (let ([binding (try-eval id)])
-      (cond ((not (eq? binding not-found))
+    (define lib (symbol-lib id))
+    (define (signature as)
+      `(,id ("args" ,@(map autodoc-arglist as))
+            ,@(if (list? lib) (list (cons "module" (write-to-string lib))) '())))
+    (let ((binding (and lib (try-eval id))))
+      (cond ((and binding (not (eq? binding not-found)))
              (let ([as (procedure-parameter-list id binding)])
                (if as (signature as) `(,id ("value" . ,(value->string binding))))))
-            ((and (known-symbol? id) (symbol-signatures id)) => signature)
+            ((and lib (symbol-signatures id)) => signature)
             (else '()))))
 
   (define (geiser:autodoc ids)
