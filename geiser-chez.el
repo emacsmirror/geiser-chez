@@ -207,6 +207,7 @@ Return its local name."
     "meta"
     "meta-cond"
     "module"
+    "rec"
     "record-case"
     "trace-case-lambda"
     "trace-define"
@@ -244,6 +245,7 @@ Return its local name."
  (meta 0)
  (meta-cond 0)
  (module 1)
+ (rec 1)
  (record-case 1)
  (trace-case-lambda 1)
  (trace-define 1)
