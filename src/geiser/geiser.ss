@@ -239,9 +239,8 @@
                `(("file" . ,(with-extension obj (car exts)))))
               (else (loop (cdr exts)))))))
 
-  (define (geiser:no-values) #f)
-
-  (define (geiser:newline) #f)
+  (define geiser:no-values void)
+  (define geiser:newline newline)
 
   (define (geiser:macroexpand form . rest)
     (with-output-to-string

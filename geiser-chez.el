@@ -136,12 +136,7 @@ Return its local name."
 (defun geiser-chez--geiser-procedure (proc &rest args)
   "Transform PROC in string for a scheme procedure using ARGS."
   (cl-case proc
-    ((eval compile)
-     (let ((form (mapconcat 'identity (cdr args) " "))
-           (module (cond ((string-equal "'()" (car args)) "'()")
-                         ((car args) (concat "'" (car args)))
-                         (t "#f"))))
-       (format "(geiser:eval %s '%s)" module form)))
+    ((eval compile) (format "(geiser:eval '%s '%s)" (car args) (cadr args)))
     ((load-file compile-file) (format "(geiser:load-file %s)" (car args)))
     ((no-values) "(geiser:no-values)")
     (t (let ((form (mapconcat 'identity args " ")))
