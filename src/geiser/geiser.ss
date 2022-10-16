@@ -23,8 +23,8 @@
           geiser:module-location
           geiser:add-to-load-path)
 
- (import (chezscheme))
- (import (geiser-data))
+  (import (chezscheme))
+  (import (geiser-data))
 
   (define-syntax as-string
     (syntax-rules () ((_ b ...) (with-output-to-string (lambda () b ...)))))
@@ -106,27 +106,23 @@
     (let ((lib (if (null? lib) (current-library) (car lib))))
       (and lib (apply environment lib (library-requirements lib)))))
 
+  (define (current-libraries)
+    (and (current-library)
+         (cons (current-library) (library-requirements (current-library)))))
+
   (define (known-symbols)
-    (let ((lib (current-library)))
-      (if lib
-          (apply append (map library-exports
-                             (cons lib (library-requirements lib))))
-          (environment-symbols (interaction-environment)))))
+    (if (current-library)
+        (apply append (map library-exports (current-libraries)))
+        (environment-symbols (interaction-environment))))
 
   (define symbol-lib
-    (rec symbol-lib
-      (case-lambda
-        ((s)
-         (let ((libs (if (current-library)
-                         (cons (current-library)
-                               (library-requirements (current-library)))
-                         (interaction-environment))))
-           (symbol-lib s libs)))
-        ((s l)
-         (cond ((null? l) #f)
-               ((and (environment? l) (memq s (environment-symbols l))) "*top*")
-               ((memq s (library-exports (car l))) (car l))
-               (else (symbol-lib s (cdr l))))))))
+    (case-lambda
+      ((s) (cond ((current-libraries) => (lambda (ls) (symbol-lib s ls)))
+                 ((memq s (known-symbols)) (symbol-lib s (library-list)))
+                 (else #f)))
+      ((s l) (cond ((null? l) #f)
+                   ((memq s (library-exports (car l))) (car l))
+                   (else (symbol-lib s (cdr l)))))))
 
   (define not-found (gensym))
 
@@ -223,16 +219,20 @@
             (else `(("required" . ,(reverse req))
                     ("optional" ,args)))))
     (define (autodoc-arglist arglist) (autodoc-arglist* arglist '()))
-    (define lib (symbol-lib id))
-    (define (signature as)
+    (define (signature as lib)
       `(,id ("args" ,@(map autodoc-arglist as))
-            ,@(if (list? lib) (list (cons "module" (write-to-string lib))) '())))
-    (let ((binding (and lib (try-eval id))))
+            ,@(if (and (not (null? lib)) (not (equal? '(chezscheme) lib)))
+                  (list (cons "module" (write-to-string lib)))
+                  '())))
+    (let* ((lib (symbol-lib id))
+           (binding (and lib (try-eval id))))
       (cond ((and binding (not (eq? binding not-found)))
              (let ([as (procedure-parameter-list id binding)])
-               (if as (signature as) `(,id ("value" . ,(value->string binding))))))
-            ((and lib (symbol-signatures id)) => signature)
-            (else '()))))
+               (if as
+                   (signature as lib)
+                   `(,id ("value" . ,(value->string binding))))))
+            ((and lib (symbol-signatures id)) => (lambda (a) (signature a '())))
+            (else (list id)))))
 
   (define (geiser:autodoc ids)
     (cond ((null? ids) '())
