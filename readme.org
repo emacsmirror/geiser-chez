@@ -1,10 +1,48 @@
-* Chez and Geiser talk to each other
+#+TITLE: Chez and Geiser talk to each other
+#+OPTIONS: d:nil
+#+EXPORT_FILE_NAME: geiser-chez.texi
+#+TEXINFO_DIR_CATEGORY: Emacs
+#+TEXINFO_DIR_TITLE: Geiser Chez: (geiser-chez).
+#+TEXINFO_DIR_DESC: Support for Chez in Geiser
+
+[![NonGNU ELPA](http://elpa.nongnu.org/nongnu/geiser-chez.svg)](http://elpa.nongnu.org/nongnu/geiser-chez.html)
 
 This package provides support for using [[https://cisco.github.io/ChezScheme/][Chez Scheme]] in Emacs with
 [[http://geiser.nongnu.org][Geiser]].
 
-Provided [[https://gitlab.com/emacs-geiser/geiser][geiser]] is installed in your system, if this package's
-directory is in your load path, just add ~(require 'geiser-chez)~ to
-your initialisation files and then ~M-x run-chez~ to start a REPL.
+* Installation
 
-The easiest way to install this package is from MELPA.
+  The easiest way of installing this package is via NonGNU Elpa or MELPA.  If
+  you're in Emacs 28 or higher, the former is already enabled and all you need
+  is the familiar
+
+  #+begin_src elisp
+    M-x install-package RET geiser-chez RET
+  #+end_src
+
+  That will also install the ~geiser~ package, and its fine info manual.  Please
+  refer to it (or its [[https://geiser.nongnu.org][online version]]) for a general description of how geiser
+  schemes work.  We provide below some additional details specific to
+  geiser-chez.
+
+** Manual installation
+
+   Provided [[https://gitlab.com/emacs-geiser/geiser][geiser]] is installed in your system, if this package's directory is
+   in your load path, just add ~(require 'geiser-chez)~ to your initialisation
+   files.
+
+
+* Start up
+
+   You can use ~M-x geiser-chez~ to start a Chez REPL, or jump to geiser from
+   any scheme buffer.
+
+   If you don't have any other Geiser flavour installed, all scheme files
+   should be automatically recognised as Chez-flavoured Geiser buffers.
+
+** Tramp support
+
+   Geiser-chez can be used remotely via tramp connections.  If you start a
+   REPL session from a remote directory or file, the REPL process will be run
+   in the machine where the tramp-accessed file lives, after copying there any
+   necessary scheme libraries.
