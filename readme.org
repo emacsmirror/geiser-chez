@@ -5,20 +5,11 @@
 #+TEXINFO_DIR_TITLE: Geiser Chez: (geiser-chez).
 #+TEXINFO_DIR_DESC: Support for Chez in Geiser
 
-#+begin_export html
-<p align=right>
-<a href="http://elpa.nongnu.org/nongnu/geiser-chez.html">
-  <img alt="NonGNU Elpa" src="http://elpa.nongnu.org/nongnu/geiser-chez.svg"/>
-</a>
-<a href="http://elpa.nongnu.org/nongnu-devel/geiser-chez.html">
-  <img alt="NonGNU Devel Elpa"
-       src="http://elpa.nongnu.org/nongnu-devel/geiser-chez.svg"/>
-</a>
-<a href="https://melpa.org/#/geiser-chez">
-  <img alt="MELPA" src="https://melpa.org/packages/geiser-chez-badge.svg"/>
-</a>
-</p>
-#+end_export
+#+html: <p align=right>
+#+html: <a href="http://elpa.nongnu.org/nongnu/geiser-chez.html"><img alt="NonGNU Elpa" src="http://elpa.nongnu.org/nongnu/geiser-chez.svg"/> </a>
+#+html: <a href="http://elpa.nongnu.org/nongnu-devel/geiser-chez.html"><img alt="NonGNU Devel Elpa" src="http://elpa.nongnu.org/nongnu-devel/geiser-chez.svg"/></a>
+#+html: <a href="https://melpa.org/#/geiser-chez"><img alt="MELPA" src="https://melpa.org/packages/geiser-chez-badge.svg"/></a>
+#+html: </p>
 
 This package provides support for using [[https://cisco.github.io/ChezScheme/][Chez Scheme]] in Emacs with
 [[http://geiser.nongnu.org][Geiser]].
