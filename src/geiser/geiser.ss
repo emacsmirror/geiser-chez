@@ -21,7 +21,8 @@
           geiser:macroexpand
           geiser:symbol-location
           geiser:module-location
-          geiser:add-to-load-path)
+          geiser:add-to-load-path
+          geiser:symbol-documentation)
 
   (import (chezscheme))
   (import (geiser-data))
@@ -264,6 +265,17 @@
               ((file-exists? (with-extension obj (car exts)))
                `(("file" . ,(with-extension obj (car exts)))))
               (else (loop (cdr exts)))))))
+
+  (define (docstr lib id)
+    (format "A ~a defined in library ~a"
+            ((or (inspect/object (try-eval id)) (lambda (x) "value")) 'type)
+            lib))
+
+  (define (geiser:symbol-documentation id)
+    (let ((lib (symbol-lib id)))
+      (and lib
+           `(("docstring" . ,(docstr lib id))
+             ("signature" . ,(id-autodoc id))))))
 
   (define geiser:no-values void)
   (define geiser:newline newline)
