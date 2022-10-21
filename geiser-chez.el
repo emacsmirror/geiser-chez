@@ -65,10 +65,6 @@ host."
 (define-obsolete-variable-alias 'geiser-chez-debug-on-exception-p
   'geiser-chez-debug-on-exception "0.18")
 
-(geiser-custom--defcustom geiser-chez-show-error-on-debug t
-  "Whether to issue a `show condition' command upon entering the debugger."
-  :type 'boolean)
-
 (defconst geiser-chez-minimum-version "9.4")
 
 ;;; REPL support
@@ -183,15 +179,24 @@ Return its local name."
     (geiser-repl-switch  nil 'chez)
     (compilation-forget-errors)
     (geiser-repl--send "(debug)")
-    (when geiser-chez-show-error-on-debug (geiser-repl--send "s"))
     t))
 
 (defun geiser-chez--display-error (_module key msg)
   "Display an error found during evaluation with the given KEY and message MSG."
-  (when (stringp msg)
-    (save-excursion (insert msg))
+  (when msg
+    (save-excursion
+      (insert (car msg))
+      (when-let (loc (cdr msg))
+        (let ((file (cdr (assoc "file" loc)))
+              (line (or (cdr (assoc "line" loc)) ""))
+              (col (or (cdr (assoc "column" loc)) (cdr (assoc "char" loc))))
+              (name (cdr (assoc "name" loc))))
+          (insert "\n\n" file (format ":%s" line))
+          (when col (insert (format ":%s" col)))
+          (when name (insert (format "   (%s)" name))))
+        (insert "\n")))
     (geiser-edit--buttonize-files)
-    (not (zerop (length msg)))))
+    t))
 
 ;;; Keywords and syntax
 

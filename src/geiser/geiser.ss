@@ -37,6 +37,25 @@
                    (print-vector-length #t))
       (as-string (pretty-print x))))
 
+  (define (code-location obj)
+    (let* ((i (inspect/object obj))
+           (c (and i (i 'code))))
+      (if c
+          (let ((name `("name" . ,(or (c 'name) (write-to-string obj)))))
+            (call-with-values (lambda () (c 'source-path))
+              (case-lambda
+                ((path line col)
+                 `(,name ("file" . ,path) ("line" . ,line) ("column" . ,col)))
+                ((path char)
+                 `((,name) ("file" . ,path) ("char" . ,char)))
+                (() #f))))
+          #f)))
+
+  (define (condition-location c)
+    (let ((finder (make-object-finder procedure? c (collect-maximum-generation))))
+      (let loop ((obj (finder)))
+        (if obj (or (code-location (car obj)) (loop (finder))) '()))))
+
   (define (call-with-result thunk)
     (let ((output-string (open-output-string)))
       (write
@@ -45,11 +64,12 @@
           (with-exception-handler
               (lambda (e)
                 (debug-condition e) ; save the condition for the debugger
-                (k `((result "")
-                     (output . ,(get-output-string output-string))
-                     (debug 1)
-                     (error (key . condition)
-                            (msg . ,(as-string (display-condition e)))))))
+                (let ((loc (or (condition-location e) '()))
+                      (desc (as-string (display-condition e))))
+                  (k `((result "")
+                       (output . ,(get-output-string output-string))
+                       (error (key . condition)
+                              (msg . ,(cons desc loc)))))))
             (lambda ()
               (call-with-values
                   (lambda ()
@@ -242,21 +262,8 @@
           (else (map id-autodoc ids))))
 
   (define (geiser:symbol-location id)
-    (let* ([b (try-eval id)]
-           [c (and (not (eq? not-found b))
-                   ((inspect/object b) 'code))])
-      (if c
-          (call-with-values (lambda () (c 'source-path))
-            (lambda (path line . col)
-              (let ((line (if (null? col) '() line))
-                    (char (if (null? col) line '()))
-                    (col (if (null? col) '() (car col))))
-                `(("name" . ,(c 'name))
-                  ("file" . ,path)
-                  ("line" . ,line)
-                  ("column" . ,col)
-                  ("char" . ,char)))))
-          '())))
+    (let ([b (try-eval id)])
+      (or (and (not (eq? not-found b)) (code-location b)) '())))
 
   (define (geiser:module-location id)
     (let ((obj (library-object-filename id)))
