@@ -39,7 +39,7 @@
 
   (define (code-location obj)
     (let* ((i (inspect/object obj))
-           (c (and i (i 'code))))
+           (c (and i (not (eq? 'simple (i 'type))) (i 'code))))
       (if c
           (let ((name `("name" . ,(or (c 'name) (write-to-string obj)))))
             (call-with-values (lambda () (c 'source-path))
@@ -53,8 +53,11 @@
 
   (define (condition-location c)
     (let ((finder (make-object-finder procedure? c (collect-maximum-generation))))
-      (let loop ((obj (finder)))
-        (if obj (or (code-location (car obj)) (loop (finder))) '()))))
+      (let loop ((obj (finder)) (res '()))
+        (if obj
+            (let ((loc (code-location (car obj))))
+              (loop (finder) (if loc (cons loc res) res)))
+            res))))
 
   (define (call-with-result thunk)
     (let ((output-string (open-output-string)))

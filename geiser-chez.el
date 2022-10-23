@@ -186,15 +186,16 @@ Return its local name."
   (when msg
     (save-excursion
       (insert (car msg))
-      (when-let (loc (cdr msg))
+      (insert "\n")
+      (dolist (loc (reverse (cdr msg)))
         (let ((file (cdr (assoc "file" loc)))
               (line (or (cdr (assoc "line" loc)) ""))
               (col (or (cdr (assoc "column" loc)) (cdr (assoc "char" loc))))
               (name (cdr (assoc "name" loc))))
-          (insert "\n\n" file (format ":%s" line))
-          (when col (insert (format ":%s" col)))
-          (when name (insert (format "   (%s)" name))))
-        (insert "\n")))
+          (unless (string-prefix-p geiser-chez-scheme-dir file)
+            (insert "\n" file (format ":%s" line))
+            (when col (insert (format ":%s" col)))
+            (when name (insert (format "   (%s)" name)))))))
     (geiser-edit--buttonize-files)
     t))
 
