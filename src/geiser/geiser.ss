@@ -60,7 +60,7 @@
             res))))
 
   (define (call-with-result thunk)
-    (let ((output-string (open-output-string)))
+    (let ((output (open-output-string)))
       (write
        (call/cc
         (lambda (k)
@@ -70,19 +70,19 @@
                 (let ((loc (or (condition-location e) '()))
                       (desc (as-string (display-condition e))))
                   (k `((result "")
-                       (output . ,(get-output-string output-string))
+                       (output . ,(get-output-string output))
                        (error (key . condition)
                               (msg . ,(cons desc loc)))))))
             (lambda ()
               (call-with-values
                   (lambda ()
-                    (parameterize ((current-output-port output-string)) (thunk)))
+                    (parameterize ((current-output-port output)) (thunk)))
                 (lambda result
                   `((result ,(write-to-string
                               (if (null? (cdr result)) (car result) result)))
-                    (output . ,(get-output-string output-string))))))))))
+                    (output . ,(get-output-string output))))))))))
       (newline)
-      (close-output-port output-string)))
+      (close-output-port output)))
 
   (define (last-index-of str-list char idx last-idx)
     (if (null? str-list)
@@ -102,18 +102,13 @@
     (let ((idx (last-index-of (string->list filename) #\/ 0 -1)))
       (if (= idx -1) filename (substring filename 0 idx))))
 
-  (define (geiser:load-file filename)
-    (let ((output-filename (obj-file-name filename)))
-      (call-with-result
-       (lambda ()
-         (parameterize ([current-directory (file-directory filename)])
-           (with-output-to-string
-             (lambda () (maybe-compile-file filename output-filename)))
-           (load output-filename))))))
-
-  (define (geiser:add-to-load-path path)
-    (let ((p (cons path path)))
-      (library-directories (cons p (remove p (library-directories))))))
+  (define (library-source-filename id)
+    (let ((obj (library-object-filename id)))
+      (let loop ((exts (if obj (map car (library-extensions)) '())))
+        (cond ((null? exts) #f)
+              ((file-exists? (with-extension obj (car exts)))
+               (with-extension obj (car exts)))
+              (else (loop (cdr exts)))))))
 
   (define string-prefix?
     (lambda (x y)
@@ -148,6 +143,25 @@
                    ((memq s (library-exports (car l))) (car l))
                    (else (symbol-lib s (cdr l)))))))
 
+  (define (add-reverse-deps! deps lib)
+    (for-each (lambda (dep)
+                (let ((rdeps (hashtable-ref deps dep '())))
+                  (when (not (member lib rdeps))
+                    (hashtable-set! deps dep (cons lib rdeps)))))
+              (library-requirements lib)))
+
+  (define (add-reverse-deps*! deps libs)
+    (when (not (null? libs))
+      (add-reverse-deps*! deps (cdr libs))
+      (add-reverse-deps! deps (car libs))))
+
+  (define reverse-lib-deps
+    (let ((deps (make-hashtable equal-hash equal?)))
+      (add-reverse-deps*! deps (library-list))
+      deps))
+
+  (define (reverse-deps lib) (hashtable-ref reverse-lib-deps lib '()))
+
   (define not-found (gensym))
 
   (define (try-eval sym)
@@ -156,6 +170,28 @@
        (with-exception-handler (lambda (e) (k not-found))
          (let ((env (transitive-env)))
            (lambda () (if env (eval sym env) (eval sym))))))))
+
+  (define (compile-and-load lib)
+    (let ((scm (if (string? lib) lib (library-source-filename lib))))
+      (when scm
+        (let ((obj (obj-file-name scm)))
+          (parameterize ([current-directory (file-directory scm)])
+            (with-output-to-string (lambda () (maybe-compile-file scm obj)))
+            (load obj)))
+        (for-each compile-and-load (reverse-deps lib)))))
+
+  (define (geiser:load-file filename lib)
+    (let ((output-filename (obj-file-name filename)))
+      (call-with-result
+       (lambda ()
+         (compile-and-load filename)
+         (when lib
+           (for-each compile-and-load (reverse-deps lib))
+           (add-reverse-deps! reverse-lib-deps lib))))))
+
+  (define (geiser:add-to-load-path path)
+    (let ((p (cons path path)))
+      (library-directories (cons p (remove p (library-directories))))))
 
   (define (geiser:eval lib form)
     (call-with-result
@@ -269,12 +305,8 @@
       (or (and (not (eq? not-found b)) (code-location b)) '())))
 
   (define (geiser:module-location id)
-    (let ((obj (library-object-filename id)))
-      (let loop ((exts (if obj (map car (library-extensions)) '())))
-        (cond ((null? exts) '())
-              ((file-exists? (with-extension obj (car exts)))
-               `(("file" . ,(with-extension obj (car exts)))))
-              (else (loop (cdr exts)))))))
+    (let ((f (library-source-filename id)))
+      (if f `(("file" . ,f)) '())))
 
   (define (docstr lib id)
     (format "A ~a defined in library ~a"

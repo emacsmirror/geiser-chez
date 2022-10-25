@@ -136,7 +136,9 @@ Return its local name."
      (if (listp (cadr args))
          (format "(geiser:ge:eval '%s '%s)" (car args) (cadr args))
        (format "(geiser:eval '%s '%s)" (car args) (cadr args))))
-    ((load-file compile-file) (format "(geiser:load-file %s)" (car args)))
+    ((load-file compile-file)
+     (let ((lib (geiser-chez--current-library)))
+       (format "(geiser:load-file %s '%s)" (car args) (or lib "#f"))))
     ((no-values) "(geiser:no-values)")
     (t (list (format "geiser:%s" proc) (mapconcat 'identity args " ")))))
 
@@ -193,9 +195,9 @@ Return its local name."
               (col (or (cdr (assoc "column" loc)) (cdr (assoc "char" loc))))
               (name (cdr (assoc "name" loc))))
           (unless (string-prefix-p geiser-chez-scheme-dir file)
-            (insert "\n" file (format ":%s" line))
-            (when col (insert (format ":%s" col)))
-            (when name (insert (format "   (%s)" name)))))))
+            (insert "\n" file (format ":%s:" line))
+            (when col (insert (format "%s:" col)))
+            (when name (insert (format " (%s)" name)))))))
     (geiser-edit--buttonize-files)
     t))
 
