@@ -122,24 +122,27 @@ Return its local name."
 
 (defun geiser-chez--startup (_remote)
   "Startup function."
-  (let ((geiser-log-verbose-p t))
-    (compilation-setup t)
-    (geiser-eval--send/wait
-     "(begin (import (geiser)) (write `((result ) (output . \"\"))) (newline))")))
+  t)
 
 ;;; Evaluation support
+
+(defsubst geiser-chez--geiser-eval (str)
+  (format "(eval '%s (environment '(geiser)))" str))
+
+(defconst geiser-chez--ge (geiser-chez--geiser-eval "geiser:ge:eval"))
+(defconst geiser-chez--ev (geiser-chez--geiser-eval "geiser:eval"))
+(defconst geiser-chez--load (geiser-chez--geiser-eval "geiser:load-file"))
 
 (defun geiser-chez--geiser-procedure (proc &rest args)
   "Transform PROC in string for a scheme procedure using ARGS."
   (cl-case proc
     ((eval compile)
      (if (listp (cadr args))
-         (format "(geiser:ge:eval '%s '%s)" (car args) (cadr args))
-       (format "(geiser:eval '%s '%s)" (car args) (cadr args))))
+         (format "(%s '%s '%s)" geiser-chez--ge (car args) (cadr args))
+       (format "(%s '%s '%s)" geiser-chez--ev (car args) (cadr args))))
     ((load-file compile-file)
      (let ((lib (geiser-chez--current-library)))
-       (format "(geiser:load-file %s '%s)" (car args) (or lib "#f"))))
-    ((no-values) "(geiser:no-values)")
+       (format "(%s %s '%s)" geiser-chez--load (car args) (or lib "#f"))))
     (t (list (format "geiser:%s" proc) (mapconcat 'identity args " ")))))
 
 (defun geiser-chez--current-library ()

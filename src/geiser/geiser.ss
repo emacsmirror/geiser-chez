@@ -22,7 +22,8 @@
           geiser:symbol-location
           geiser:module-location
           geiser:add-to-load-path
-          geiser:symbol-documentation)
+          geiser:symbol-documentation
+          quote)
 
   (import (chezscheme))
   (import (geiser-data))
@@ -201,7 +202,7 @@
 
   (define (geiser:ge:eval lib form)
     (parameterize ([current-library lib])
-      (call-with-result (lambda () (eval form)))))
+      (call-with-result (lambda () (eval form (environment '(geiser)))))))
 
   (define (geiser:completions prefix)
     (sort string-ci<?
