@@ -188,7 +188,7 @@ Return its local name."
 
 (defun geiser-chez--display-error (_module key msg)
   "Display an error found during evaluation with the given KEY and message MSG."
-  (when msg
+  (when (listp msg)
     (save-excursion
       (insert (car msg))
       (insert "\n")
