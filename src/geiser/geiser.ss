@@ -176,8 +176,9 @@
     (let ((scm (if (string? lib) lib (library-source-filename lib))))
       (when scm
         (let ((obj (obj-file-name scm)))
-          (parameterize ([current-directory (file-directory scm)])
-            (with-output-to-string (lambda () (maybe-compile-file scm obj)))
+          (parameterize ([current-directory (file-directory scm)]
+                         [compile-file-message #f])
+            (compile-file scm obj)
             (load obj)))
         (for-each compile-and-load (reverse-deps lib)))))
 
