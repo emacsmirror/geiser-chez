@@ -21,7 +21,7 @@ This package provides support for using [[https://cisco.github.io/ChezScheme/][C
   is the familiar
 
   #+begin_src elisp
-    M-x install-package RET geiser-chez RET
+    M-x package-install RET geiser-chez RET
   #+end_src
 
   That will also install the ~geiser~ package, and its fine info manual.  Please
