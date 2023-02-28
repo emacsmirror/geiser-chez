@@ -65,6 +65,27 @@ host."
 (define-obsolete-variable-alias 'geiser-chez-debug-on-exception-p
   'geiser-chez-debug-on-exception "0.18")
 
+(geiser-custom--defcustom geiser-chez-browse-function #'eww
+  "Function used to open HTML pages for the manuals."
+  :type 'function)
+
+(geiser-custom--defcustom geiser-chez-csug-url
+    "https://cisco.github.io/ChezScheme/csug9.5/"
+  "Base URL for the Chez Scheme User's Guide HTML documents.
+
+Set it to a local file URI such as
+'file:///usr/share/doc/chezscheme-doc/html/' for quicker offline
+access."
+  :type 'string)
+
+(geiser-custom--defcustom geiser-chez-tspl-url
+    "https://scheme.com/tspl4/"
+  "Base URL for the The Scheme Programming Languange HTML version.
+
+Set it to a local file URI such as
+'file:///usr/share/doc/tlsp/html/' for quicker offline access."
+  :type 'string)
+
 (defconst geiser-chez-minimum-version "9.4")
 
 ;;; REPL support
@@ -273,6 +294,27 @@ Return its local name."
  (with-output-to-file 1)
  (with-output-to-string 0))
 
+;;; Documentation display
+(defun geiser-chez--insert-button (url label)
+  (insert-text-button label
+                      'button-data url
+                      'action geiser-chez-browse-function))
+
+(defun geiser-chez--display-docstring (res)
+  (when-let ((labels (cdr (assoc "labels" res))))
+    (insert (format "%s\n" (or (cdr (assoc "docstring" res)) "")))
+    (let* ((csug (cdr (assoc 'csug labels)))
+           (csug-url (and (stringp csug) (concat geiser-chez-csug-url csug)))
+           (tspl (cdr (assoc 'tspl labels)))
+           (tspl-url (and (stringp tspl) (concat geiser-chez-tspl-url tspl))))
+      (when csug-url
+        (insert "\n")
+        (geiser-chez--insert-button csug-url "· Chez Manual Entry"))
+      (when tspl-url
+        (insert "\n")
+        (geiser-chez--insert-button tspl-url "· TSLP Entry")))
+    t))
+
 ;;; Implementation definition:
 
 (define-geiser-implementation chez
@@ -291,8 +333,8 @@ Return its local name."
   (import-command geiser-chez--import-command)
   (find-symbol-begin geiser-chez--symbol-begin)
   (display-error geiser-chez--display-error)
+  (display-docstring geiser-chez--display-docstring)
   ;; (external-help geiser-chez--manual-look-up)
-  ;; (check-buffer geiser-chez--guess)
   (keywords geiser-chez--keywords)
   (nested-definitions t)
   (case-sensitive nil))

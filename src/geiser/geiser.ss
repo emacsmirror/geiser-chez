@@ -319,7 +319,8 @@
     (let ((lib (symbol-lib id)))
       (and lib
            `(("docstring" . ,(docstr lib id))
-             ("signature" . ,(id-autodoc id))))))
+             ("signature" . ,(id-autodoc id))
+             ("labels" . ,(symbol-labels id))))))
 
   (define geiser:no-values void)
   (define geiser:newline newline)
