@@ -74,7 +74,7 @@ host."
   "Base URL for the Chez Scheme User's Guide HTML documents.
 
 Set it to a local file URI such as
-'file:///usr/share/doc/chezscheme-doc/html/' for quicker offline
+`file:///usr/share/doc/chezscheme-doc/html/' for quicker offline
 access."
   :type 'string)
 
@@ -83,7 +83,7 @@ access."
   "Base URL for the The Scheme Programming Languange HTML version.
 
 Set it to a local file URI such as
-'file:///usr/share/doc/tlsp/html/' for quicker offline access."
+`file:///usr/share/doc/tlsp/html/' for quicker offline access."
   :type 'string)
 
 (defconst geiser-chez-minimum-version "9.4")
