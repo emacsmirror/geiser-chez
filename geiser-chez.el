@@ -80,7 +80,7 @@ access."
 
 (geiser-custom--defcustom geiser-chez-tspl-url
     "https://scheme.com/tspl4/"
-  "Base URL for the The Scheme Programming Languange HTML version.
+  "Base URL for the The Scheme Programming Language HTML version.
 
 Set it to a local file URI such as
 `file:///usr/share/doc/tlsp/html/' for quicker offline access."
@@ -312,7 +312,7 @@ Return its local name."
         (geiser-chez--insert-button csug-url "· Chez Manual Entry"))
       (when tspl-url
         (insert "\n")
-        (geiser-chez--insert-button tspl-url "· TSLP Entry")))
+        (geiser-chez--insert-button tspl-url "· TSPL Entry")))
     t))
 
 ;;; Implementation definition:
