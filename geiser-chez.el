@@ -58,12 +58,12 @@ host."
   "Extra keywords highlighted in Chez Scheme buffers."
   :type '(repeat string))
 
+(define-obsolete-variable-alias 'geiser-chez-debug-on-exception-p
+  'geiser-chez-debug-on-exception "0.18")
+
 (geiser-custom--defcustom geiser-chez-debug-on-exception nil
   "Whether to automatically enter the debugger when an evaluation throws."
   :type 'boolean)
-
-(define-obsolete-variable-alias 'geiser-chez-debug-on-exception-p
-  'geiser-chez-debug-on-exception "0.18")
 
 (geiser-custom--defcustom geiser-chez-browse-function #'eww
   "Function used to open HTML pages for the manuals."
