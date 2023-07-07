@@ -6,7 +6,7 @@
 ;; Homepage: https://gitlab.com/emacs-geiser/chez
 ;; Package-Requires: ((emacs "26.1") (geiser "0.19"))
 ;; SPDX-License-Identifier: BSD-3-Clause
-;; Version: 0.17
+;; Version: 0.18
 
 ;;; Commentary:
 
